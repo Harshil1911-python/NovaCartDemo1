@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %}
+{% block title %}Data Vault{% endblock %}
+{% block page_title %}Data Vault — All Site Data{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <p style="color:var(--text-muted);margin-bottom:1.5rem">
+    <i class="fas fa-database"></i> Complete view of all data stored in <code>data.dat</code>. Click any collection to browse records.
+  </p>
+  <div class="vault-grid">
+    {% for col, count in summary.items() %}
+    <a href="/x-admin-9f3k2/data-vault/{{ col }}" class="vault-card">
+      <div class="vault-icon">
+        {% set icons = {'users':'fa-users','sellers':'fa-store-alt','products':'fa-box',
+          'categories':'fa-tags','orders':'fa-shopping-bag','cart':'fa-cart-plus',
+          'wishlist':'fa-heart','reviews':'fa-star','addresses':'fa-map-marker-alt',
+          'banners':'fa-images','ads':'fa-ad','pages':'fa-file-alt','nav_links':'fa-link',
+          'settings':'fa-cog','coupons':'fa-ticket-alt','testimonials':'fa-comment',
+          'newsletter':'fa-envelope','sponsored':'fa-bolt'} %}
+        <i class="fas {{ icons.get(col, 'fa-database') }}"></i>
+      </div>
+      <div class="vault-info">
+        <strong>{{ col|replace('_',' ')|title }}</strong>
+        <span>{{ count }} record{{ 's' if count != 1 else '' }}</span>
+      </div>
+      <i class="fas fa-chevron-right vault-arrow"></i>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

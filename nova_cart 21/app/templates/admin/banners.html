@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}
+{% block title %}Banners{% endblock %}
+{% block page_title %}Hero Banners{% endblock %}
+{% block content %}
+<div class="form-grid-2">
+  <div class="admin-card">
+    <h3>Add Banner</h3>
+    <form method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Title</label><input type="text" name="title" required></div>
+      <div class="form-group"><label>Subtitle</label><input type="text" name="subtitle"></div>
+      <div class="form-group"><label>Button Text</label><input type="text" name="button_text" placeholder="Shop Now"></div>
+      <div class="form-group"><label>Button URL</label><input type="text" name="button_url" placeholder="/shop"></div>
+      <div class="form-group"><label>Banner Image</label><input type="file" name="image" accept="image/*"></div>
+      <div class="form-group"><label>Sort Order</label><input type="number" name="sort_order" value="0"></div>
+      <button class="btn btn-primary">Add Banner</button>
+    </form>
+  </div>
+  <div class="admin-card">
+    <h3>Active Banners</h3>
+    {% for b in banners %}
+    <div class="banner-item">
+      {% if b.image %}<img src="{{ b.image }}" class="banner-thumb">{% endif %}
+      <div class="banner-info">
+        <strong>{{ b.title }}</strong>
+        <p>{{ b.subtitle }}</p>
+      </div>
+      <form method="POST" action="/x-admin-9f3k2/banners/delete/{{ b.id }}" onsubmit="return confirm('Delete?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

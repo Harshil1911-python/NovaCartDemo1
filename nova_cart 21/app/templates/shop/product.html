@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block meta_desc %}{{ product.meta_description or product.short_description }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  {% if settings.get('show_breadcrumb','true') == 'true' %}
+  <nav class="breadcrumb">
+    <a href="/">Home</a><span>/</span>
+    <a href="/shop">Shop</a><span>/</span>
+    {% if category %}<a href="/shop/category/{{ category.slug }}">{{ category.name }}</a><span>/</span>{% endif %}
+    <span>{{ product.name }}</span>
+  </nav>
+  {% endif %}
+
+  <!-- Product Top Ad -->
+  {% set ptop_ads = get_ads('product_top') %}
+  {% if ptop_ads %}
+  <a href="{{ ptop_ads[0].link or '#' }}" class="inline-ad" onclick="trackAd({{ ptop_ads[0].id }})">
+    {% if ptop_ads[0].image %}<img src="{{ ptop_ads[0].image }}" alt="{{ ptop_ads[0].title }}" style="width:100%;border-radius:8px;margin-bottom:1rem;max-height:90px;object-fit:cover">{% endif %}
+  </a>
+  {% endif %}
+
+  <div class="product-detail-layout">
+    <!-- Gallery -->
+    <div class="product-gallery">
+      {% set images = product.images if product.images else [] %}
+      <div class="main-image-wrap" id="mainImgWrap">
+        <img id="mainImg" src="{{ images[0] if images else '/static/images/no-image.png' }}"
+             alt="{{ product.name }}" class="main-product-img">
+        {% if product.discount_price %}
+        <span class="detail-badge">{{ ((product.price - product.discount_price)/product.price*100)|int }}% OFF</span>
+        {% endif %}
+        {% if is_sponsored %}
+        <span class="detail-badge" style="left:auto;right:1rem;background:var(--primary)"><i class="fas fa-bolt"></i> Sponsored</span>
+        {% endif %}
+        <!-- Zoom hint -->
+        <div style="position:absolute;bottom:.5rem;right:.5rem;background:rgba(0,0,0,.4);color:#fff;font-size:.72rem;padding:.2rem .5rem;border-radius:4px"><i class="fas fa-search-plus"></i> Hover to zoom</div>
+      </div>
+      {% if images|length > 1 %}
+      <div class="thumbnail-strip">
+        {% for img in images %}
+        <img src="{{ img }}" alt="{{ product.name }}" class="thumb {% if loop.first %}active{% endif %}"
+             onclick="setMainImg(this,'{{ img }}')">
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Info -->
+    <div class="product-detail-info">
+      {% if category %}<a href="/shop/category/{{ category.slug }}" class="product-cat-link"><i class="{{ category.icon }}"></i> {{ category.name }}</a>{% endif %}
+      <h1 class="product-detail-title">{{ product.name }}</h1>
+
+      <div class="detail-rating">
+        {% set avg = (reviews|map(attribute='rating')|sum / reviews|length)|round(1) if reviews else 0 %}
+        {% for i in range(5) %}<i class="fa{{ 's' if i < avg|int else 'r' }} fa-star"></i>{% endfor %}
+        <span>({{ reviews|length }} review{{ 's' if reviews|length != 1 else '' }})</span>
+        <span>·</span><span>{{ product.views or 0 }} views</span>
+        {% if loyalty_points > 0 %}
+        <span>·</span><span style="color:#F6AD55"><i class="fas fa-coins"></i> Earn {{ (((product.discount_price or product.price) / 10)|int) }} pts</span>
+        {% endif %}
+      </div>
+
+      <div class="detail-price-block">
+        {% if product.discount_price %}
+        <span class="detail-price">₹{{ product.discount_price|int }}</span>
+        <span class="detail-original">₹{{ product.price|int }}</span>
+        <span class="detail-save">Save ₹{{ (product.price - product.discount_price)|int }}</span>
+        {% else %}
+        <span class="detail-price">₹{{ product.price|int }}</span>
+        {% endif %}
+      </div>
+
+      <p class="product-short-desc">{{ product.short_description }}</p>
+
+      <!-- Product Variants -->
+      {% if variants %}
+      <div class="variants-section">
+        {% for variant in variants %}
+        <div class="variant-group">
+          <label class="variant-label">{{ variant.name }}</label>
+          <div class="variant-options">
+            {% for opt in variant.options %}
+            <button class="variant-btn {% if loop.first %}selected{% endif %}"
+                    onclick="selectVariant(this, '{{ variant.name }}', '{{ opt }}')"
+                    data-variant="{{ variant.name }}" data-value="{{ opt }}">{{ opt }}</button>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Size Chart -->
+      {% if size_chart %}
+      <button class="btn btn-outline btn-sm" onclick="toggleSizeChart()" style="margin-bottom:1rem">
+        <i class="fas fa-ruler"></i> Size Chart
+      </button>
+      <div id="sizeChartPanel" style="display:none;background:var(--bg);border-radius:10px;padding:1rem;margin-bottom:1rem">
+        {{ size_chart | safe }}
+      </div>
+      {% endif %}
+
+      <!-- Stock -->
+      <div class="stock-info">
+        {% if product.stock > 10 %}<span class="in-stock"><i class="fas fa-check-circle"></i> In Stock ({{ product.stock }} available)</span>
+        {% elif product.stock > 0 %}<span class="low-stock"><i class="fas fa-exclamation-circle"></i> Only {{ product.stock }} left!</span>
+        {% else %}<span class="out-stock"><i class="fas fa-times-circle"></i> Out of Stock</span>{% endif %}
+      </div>
+
+      {% if product.stock > 0 %}
+      <div class="cart-actions">
+        <div class="qty-control">
+          <button type="button" onclick="changeQty(-1)">−</button>
+          <input type="number" id="productQty" value="1" min="1" max="{{ product.stock }}">
+          <button type="button" onclick="changeQty(1)">+</button>
+        </div>
+        <button class="btn btn-primary btn-lg" onclick="addToCartDetail({{ product.id }})">
+          <i class="fas fa-cart-plus"></i> Add to Cart
+        </button>
+        <button class="btn btn-secondary btn-lg" onclick="buyNow({{ product.id }})">
+          <i class="fas fa-bolt"></i> Buy Now
+        </button>
+      </div>
+      {% endif %}
+
+      <div class="product-cta-row">
+        <button class="wishlist-full-btn {% if in_wishlist %}wishlisted{% endif %}" onclick="toggleWishlist({{ product.id }}, this)">
+          <i class="fa{{ 's' if in_wishlist else 'r' }} fa-heart"></i>
+          <span>{{ 'Wishlisted' if in_wishlist else 'Add to Wishlist' }}</span>
+        </button>
+        <button class="share-btn" onclick="shareProduct()"><i class="fas fa-share-alt"></i> Share</button>
+        <button class="share-btn" onclick="addToCompare({{ product.id }}, '{{ product.name }}', this)">
+          <i class="fas fa-balance-scale"></i> Compare
+        </button>
+      </div>
+
+      <!-- Share Panel -->
+      <div class="share-panel" id="sharePanel" style="display:none">
+        <a href="https://wa.me/?text={{ product.name }} - ₹{{ product.discount_price or product.price }} {{ request.url }}" target="_blank" class="share-icon whatsapp"><i class="fab fa-whatsapp"></i></a>
+        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank" class="share-icon" style="background:#1877F2"><i class="fab fa-facebook-f"></i></a>
+        <a href="https://twitter.com/intent/tweet?text={{ product.name }}&url={{ request.url }}" target="_blank" class="share-icon" style="background:#1DA1F2"><i class="fab fa-twitter"></i></a>
+        <button class="share-icon copy" onclick="copyLink()"><i class="fas fa-link"></i></button>
+        <span id="copyMsg" style="font-size:.8rem;color:var(--accent);display:none">Copied!</span>
+      </div>
+
+      <div class="product-meta">
+        {% if product.sku %}<p><strong>SKU:</strong> {{ product.sku }}</p>{% endif %}
+        {% if product.tags %}<p><strong>Tags:</strong>
+          {% for tag in product.tags.split(',') %}
+          <a href="/shop?q={{ tag.strip() }}" class="tag-link">{{ tag.strip() }}</a>
+          {% endfor %}
+        </p>{% endif %}
+        {% if seller %}<p><strong>Sold by:</strong> <a href="/shop/store/{{ seller.slug }}">{{ seller.shop_name }}</a></p>{% endif %}
+      </div>
+
+      {% if settings.get('whatsapp_number') %}
+      <a href="https://wa.me/{{ settings.get('whatsapp_number') }}?text=Hi! I want to order: {{ product.name }} (₹{{ product.discount_price or product.price }})"
+         class="btn btn-whatsapp mt-2" target="_blank">
+        <i class="fab fa-whatsapp"></i> Order on WhatsApp
+      </a>
+      {% endif %}
+
+      <!-- Trust Badges -->
+      <div class="trust-badges">
+        <div class="trust-badge"><i class="fas fa-shield-alt"></i><span>100% Genuine</span></div>
+        <div class="trust-badge"><i class="fas fa-truck"></i><span>Fast Delivery</span></div>
+        <div class="trust-badge"><i class="fas fa-undo"></i><span>7-Day Return</span></div>
+        <div class="trust-badge"><i class="fas fa-lock"></i><span>Secure Pay</span></div>
+      </div>
+
+      <!-- Sticky Cart Bar -->
+      <div class="sticky-cart-bar" id="stickyCartBar">
+        <div><strong>{{ product.name[:30] }}{% if product.name|length > 30 %}…{% endif %}</strong>
+        <span class="price-current" style="margin-left:.5rem">₹{{ product.discount_price or product.price }}</span></div>
+        {% if product.stock > 0 %}
+        <button class="btn btn-primary" onclick="addToCartDetail({{ product.id }})">
+          <i class="fas fa-cart-plus"></i> Add to Cart
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="product-tabs">
+    <div class="tab-buttons">
+      <button class="tab-btn active" onclick="switchTab(this,'desc')">Description</button>
+      <button class="tab-btn" onclick="switchTab(this,'reviews')">Reviews ({{ reviews|length }})</button>
+      {% if product.get('specifications') %}
+      <button class="tab-btn" onclick="switchTab(this,'specs')">Specifications</button>
+      {% endif %}
+    </div>
+
+    <div class="tab-content active" id="tab-desc">
+      <div class="product-description">{{ product.description | safe }}</div>
+    </div>
+
+    <div class="tab-content" id="tab-reviews">
+      {% if current_user %}
+      <form action="/shop/review/{{ product.id }}" method="POST" class="review-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h4>Write a Review</h4>
+        <div class="star-picker" id="starPicker">
+          {% for i in range(1,6) %}<i class="far fa-star" onclick="setRating({{ i }})"></i>{% endfor %}
+        </div>
+        <input type="hidden" name="rating" id="ratingInput" value="5">
+        <textarea name="comment" placeholder="Share your experience..." required rows="3" class="review-textarea"></textarea>
+        <button type="submit" class="btn btn-primary">Submit Review</button>
+      </form>
+      {% else %}
+      <p class="login-prompt"><a href="/auth/login">Login</a> to write a review.</p>
+      {% endif %}
+
+      <!-- Review Summary -->
+      {% if reviews %}
+      <div class="review-summary">
+        {% set avg = (reviews|map(attribute='rating')|sum / reviews|length)|round(1) %}
+        <div class="review-avg">
+          <span class="avg-number">{{ avg }}</span>
+          <div>
+            {% for i in range(5) %}<i class="fa{{ 's' if i < avg|int else 'r' }} fa-star"></i>{% endfor %}
+            <p>{{ reviews|length }} reviews</p>
+          </div>
+        </div>
+        <!-- Rating bars -->
+        {% for star in [5,4,3,2,1] %}
+        {% set count = reviews|selectattr('rating','equalto',star)|list|length %}
+        <div class="rating-bar-row">
+          <span>{{ star }} <i class="fas fa-star" style="color:#F6AD55;font-size:.8rem"></i></span>
+          <div class="rating-bar"><div class="rating-fill" style="width:{{ (count/reviews|length*100)|int }}%"></div></div>
+          <span>{{ count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="reviews-list">
+        {% for r in reviews|sort(attribute='created_at', reverse=True) %}
+        <div class="review-item">
+          <div class="review-header">
+            <div class="review-avatar">{{ r.user_name[0].upper() }}</div>
+            <div><strong>{{ r.user_name }}</strong><small style="display:block;color:var(--text-muted)">{{ r.created_at[:10] if r.created_at else '' }}</small></div>
+            <div class="review-stars">{% for i in range(r.rating|int) %}<i class="fas fa-star"></i>{% endfor %}</div>
+          </div>
+          <p>{{ r.comment }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="no-reviews">No reviews yet. Be the first!</p>
+      {% endif %}
+    </div>
+
+    {% if product.get('specifications') %}
+    <div class="tab-content" id="tab-specs">
+      <div class="specs-table">
+        {% for spec in product.specifications %}
+        <div class="spec-row">
+          <span class="spec-key">{{ spec.key }}</span>
+          <span class="spec-val">{{ spec.value }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Product Bottom Ad -->
+  {% set pbot_ads = get_ads('product_bottom') %}
+  {% if pbot_ads %}
+  <a href="{{ pbot_ads[0].link or '#' }}" class="inline-ad" onclick="trackAd({{ pbot_ads[0].id }})">
+    {% if pbot_ads[0].image %}<img src="{{ pbot_ads[0].image }}" alt="{{ pbot_ads[0].title }}" style="width:100%;border-radius:8px;margin:1.5rem 0;max-height:120px;object-fit:cover">{% endif %}
+  </a>
+  {% endif %}
+
+  <!-- Related Products -->
+  {% if related %}
+  <section class="related-section section">
+    <div class="section-header">
+      <h2 class="section-title">Related Products</h2>
+      <a href="/shop/category/{{ category.slug if category else '' }}" class="see-all">See All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="products-grid">
+      {% for product in related %}{% include 'partials/product_card.html' %}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Recently Viewed -->
+  {% if recently_viewed %}
+  <section class="section">
+    <div class="section-header"><h2 class="section-title"><i class="fas fa-history"></i> Recently Viewed</h2></div>
+    <div class="products-grid">
+      {% for product in recently_viewed %}{% include 'partials/product_card.html' %}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedVariants = {};
+
+function setMainImg(el, src) {
+  document.getElementById('mainImg').src = src;
+  document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+function changeQty(d) {
+  const inp = document.getElementById('productQty');
+  inp.value = Math.max(1, Math.min(parseInt(inp.max||999), parseInt(inp.value||1) + d));
+}
+function addToCartDetail(id) {
+  const qty = parseInt(document.getElementById('productQty')?.value || 1);
+  fetch('/cart/add/'+id, {
+    method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+    body: JSON.stringify({quantity: qty, variants: selectedVariants})
+  }).then(r=>r.json()).then(d=>{
+    if(d.status==='login_required') window.location='/auth/login';
+    else if(d.status==='error') showToast(d.msg,'danger');
+    else { updateCartBadge(d.cart_count); showToast('Added to cart! 🛒','success'); }
+  });
+}
+function buyNow(id) {
+  const qty = parseInt(document.getElementById('productQty')?.value || 1);
+  fetch('/cart/add/'+id, {
+    method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+    body: JSON.stringify({quantity: qty})
+  }).then(()=>{ window.location='/cart/checkout'; });
+}
+function switchTab(btn, id) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+id)?.classList.add('active');
+}
+function setRating(n) {
+  document.getElementById('ratingInput').value = n;
+  document.querySelectorAll('#starPicker i').forEach((s,i)=>{
+    s.className = i < n ? 'fas fa-star' : 'far fa-star';
+  });
+}
+function shareProduct() {
+  const panel = document.getElementById('sharePanel');
+  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+}
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href).then(()=>{
+    const m = document.getElementById('copyMsg');
+    m.style.display='inline'; setTimeout(()=>m.style.display='none',2000);
+  });
+}
+function selectVariant(btn, name, val) {
+  document.querySelectorAll(`.variant-btn[data-variant="${name}"]`).forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedVariants[name] = val;
+}
+function toggleSizeChart() {
+  const p = document.getElementById('sizeChartPanel');
+  if(p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+window.addEventListener('scroll', ()=>{
+  const bar = document.getElementById('stickyCartBar');
+  if(bar) bar.classList.toggle('visible', window.scrollY > 500);
+});
+// Image zoom
+const zoomImg = document.getElementById('mainImg');
+if(zoomImg) {
+  zoomImg.addEventListener('mouseenter', ()=>{ zoomImg.style.transform='scale(1.12)'; });
+  zoomImg.addEventListener('mouseleave', ()=>{ zoomImg.style.transform=''; });
+}
+
+// Recently purchased social proof
+{% if settings.get('show_social_proof','true') == 'true' %}
+const proofData = [
+  {name:'Rahul S.',city:'Mumbai',product:'{{ product.name[:20] }}'},
+  {name:'Priya M.',city:'Delhi',product:'{{ product.name[:20] }}'},
+  {name:'Arjun K.',city:'Bangalore',product:'{{ product.name[:20] }}'},
+];
+let pi=0;
+function showProof(){
+  const item=proofData[pi%proofData.length];pi++;
+  let el=document.getElementById('socialProof');
+  if(!el){el=document.createElement('div');el.id='socialProof';
+    el.style.cssText='position:fixed;bottom:5.5rem;left:1.5rem;background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:.9rem 1.1rem;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:998;max-width:260px;font-size:.82rem;animation:slideIn .4s ease';
+    document.body.appendChild(el);}
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:.6rem"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6C63FF,#FF6584);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">${item.name[0]}</div><div><strong>${item.name}</strong> from ${item.city}<br>just bought <strong>${item.product}</strong> 🎉</div></div>`;
+  el.style.display='block';
+  setTimeout(()=>{if(el)el.style.display='none';},4000);
+}
+setTimeout(showProof,6000);
+setInterval(showProof,20000);
+{% endif %}
+</script>
+{% endblock %}

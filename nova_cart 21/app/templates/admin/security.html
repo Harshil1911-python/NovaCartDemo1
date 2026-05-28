@@ -1,0 +1,95 @@
+{% extends "admin/base.html" %}
+{% block title %}Security{% endblock %}
+{% block page_title %}Security Settings{% endblock %}
+{% block content %}
+<div class="form-grid-2">
+
+  <!-- Change Password -->
+  <div class="admin-card">
+    <h3><i class="fas fa-key text-warning"></i> Change Admin Password</h3>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="change_password">
+      <div class="form-group">
+        <label>Current Password</label>
+        <input type="password" name="old_password" required>
+      </div>
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" name="new_password" required minlength="6">
+      </div>
+      <button class="btn btn-warning"><i class="fas fa-key"></i> Update Password</button>
+    </form>
+  </div>
+
+  <!-- Admin PIN -->
+  <div class="admin-card">
+    <h3><i class="fas fa-lock text-primary"></i> Admin PIN (2FA)</h3>
+    <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:1rem">
+      When a PIN is set, it will be required at every admin login as a second factor.
+    </p>
+    <div style="margin-bottom:1rem">
+      <span class="status-badge {{ 'status-active' if s.get('admin_pin') else 'status-inactive' }}">
+        {{ 'PIN Active' if s.get('admin_pin') else 'No PIN Set' }}
+      </span>
+    </div>
+    <form method="POST" style="margin-bottom:1rem">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="set_pin">
+      <div class="form-group">
+        <label>New PIN (min 4 characters)</label>
+        <input type="password" name="new_pin" minlength="4" placeholder="e.g. 1234 or mysecretpin">
+      </div>
+      <button class="btn btn-primary"><i class="fas fa-shield-alt"></i> Set PIN</button>
+    </form>
+    {% if s.get('admin_pin') %}
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="remove_pin">
+      <button class="btn btn-danger btn-sm" onclick="return confirm('Remove admin PIN?')">
+        <i class="fas fa-times"></i> Remove PIN
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Session Info -->
+  <div class="admin-card">
+    <h3><i class="fas fa-clock"></i> Session Security</h3>
+    <table class="admin-table">
+      <tr><td>Session Timeout</td><td><strong>1 hour</strong> of inactivity</td></tr>
+      <tr><td>Max Login Attempts</td><td><strong>5 attempts</strong> then 5-min lockout</td></tr>
+      <tr><td>Admin Route</td><td><code>/x-admin-9f3k2/login</code></td></tr>
+      <tr><td>Access Trigger</td><td>Click footer "Nova Cart" 5 times</td></tr>
+      <tr><td>Cookie Security</td><td>HTTPOnly + SameSite=Lax</td></tr>
+      <tr><td>Password Hashing</td><td>PBKDF2-HMAC-SHA256 (260k rounds)</td></tr>
+    </table>
+  </div>
+
+  <!-- Admin Logs -->
+  <div class="admin-card">
+    <h3><i class="fas fa-history"></i> Login Activity Log</h3>
+    {% if logs %}
+    <table class="admin-table">
+      <thead><tr><th>Action</th><th>Email</th><th>IP</th><th>Time</th></tr></thead>
+      <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>
+          <span class="status-badge {{ 'status-active' if log.action == 'login' else 'status-inactive' }}">
+            {{ log.action|title }}
+          </span>
+        </td>
+        <td>{{ log.user_email or '—' }}</td>
+        <td><code>{{ log.ip }}</code></td>
+        <td style="font-size:.82rem">{{ (log.ts|int)|string }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty-msg">No login activity yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

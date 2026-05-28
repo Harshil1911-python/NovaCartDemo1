@@ -1,0 +1,159 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Edit' if product else 'Add' }} Product{% endblock %}
+{% block page_title %}{{ 'Edit' if product else 'Add' }} Product{% endblock %}
+{% block content %}
+<form method="POST" enctype="multipart/form-data" class="admin-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid-2">
+    <!-- Left Column -->
+    <div>
+      <div class="admin-card">
+        <h3 class="card-section-title">Basic Info</h3>
+        <div class="form-group"><label>Product Name *</label><input type="text" name="name" value="{{ product.name if product else '' }}" required id="pname"></div>
+        <div class="form-group"><label>Short Description</label><input type="text" name="short_description" value="{{ product.short_description if product else '' }}" placeholder="One-line summary shown in cards"></div>
+        <div class="form-group"><label>Full Description (HTML supported)</label><textarea name="description" rows="7" id="descArea">{{ product.description if product else '' }}</textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Price (₹) *</label><input type="number" name="price" step="0.01" value="{{ product.price if product else '' }}" required></div>
+          <div class="form-group"><label>Discount Price (₹)</label><input type="number" name="discount_price" step="0.01" value="{{ product.discount_price if product and product.discount_price else '' }}"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Stock *</label><input type="number" name="stock" value="{{ product.stock if product else 0 }}" required></div>
+          <div class="form-group"><label>SKU</label><input type="text" name="sku" value="{{ product.sku if product else '' }}" placeholder="Auto-generated if empty"></div>
+        </div>
+        <div class="form-group"><label>Tags (comma separated)</label><input type="text" name="tags" value="{{ product.tags if product else '' }}" placeholder="earbuds, wireless, audio"></div>
+        <div class="form-group"><label>Category *</label>
+          <select name="category_id" required>
+            <option value="">-- Select Category --</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if product and product.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Variants -->
+      <div class="admin-card">
+        <h3 class="card-section-title"><i class="fas fa-layer-group"></i> Product Variants</h3>
+        <p style="font-size:.83rem;color:var(--text-muted);margin-bottom:1rem">Add variants like Size, Color, Material. Customers can select before adding to cart.</p>
+        <div id="variantsList">
+          {% if product and product.variants %}
+          {% for v in product.variants %}
+          <div class="variant-row" data-idx="{{ loop.index0 }}">
+            <div class="form-row">
+              <div class="form-group flex-1"><label>Variant Name</label><input type="text" name="variant_name[]" value="{{ v.name }}" placeholder="Size, Color..."></div>
+              <div class="form-group flex-2"><label>Options (comma separated)</label><input type="text" name="variant_options[]" value="{{ v.options|join(', ') }}" placeholder="S, M, L, XL"></div>
+              <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.remove()" style="margin-top:1.5rem"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addVariant()"><i class="fas fa-plus"></i> Add Variant</button>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-top:.5rem">Example: Name=Size, Options=S, M, L, XL</div>
+      </div>
+
+      <!-- Specifications -->
+      <div class="admin-card">
+        <h3 class="card-section-title"><i class="fas fa-list-ul"></i> Specifications</h3>
+        <div id="specsList">
+          {% if product and product.get('specifications') %}
+          {% for spec in product.specifications %}
+          <div class="form-row spec-row">
+            <div class="form-group flex-1"><input type="text" name="spec_key[]" value="{{ spec.key }}" placeholder="Battery Life"></div>
+            <div class="form-group flex-1"><input type="text" name="spec_value[]" value="{{ spec.value }}" placeholder="30 Hours"></div>
+            <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addSpec()"><i class="fas fa-plus"></i> Add Spec</button>
+      </div>
+    </div>
+
+    <!-- Right Column -->
+    <div>
+      <div class="admin-card">
+        <h3 class="card-section-title">Images</h3>
+        {% if product and product.images %}
+        <div class="existing-images">
+          {% for img in product.images %}
+          <div style="position:relative;display:inline-block">
+            <img src="{{ img }}" class="existing-thumb">
+            <label style="position:absolute;top:2px;right:2px;background:rgba(252,129,129,.9);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.7rem">
+              <input type="checkbox" name="remove_image" value="{{ img }}" style="display:none" onchange="this.parentElement.style.background=this.checked?'#E53E3E':'rgba(252,129,129,.9)'">×</label>
+          </div>
+          {% endfor %}
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin:.4rem 0">Click × to mark image for removal</p>
+        {% endif %}
+        <div class="form-group">
+          <label>Upload New Images</label>
+          <input type="file" name="images" multiple accept="image/*" class="file-input">
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3 class="card-section-title">Flags</h3>
+        <div class="checkbox-list">
+          <label class="toggle-label"><input type="checkbox" name="is_active" {% if not product or product.is_active %}checked{% endif %}> Active (visible on site)</label>
+          <label class="toggle-label"><input type="checkbox" name="is_featured" {% if product and product.is_featured %}checked{% endif %}> Featured on Homepage</label>
+          <label class="toggle-label"><input type="checkbox" name="is_trending" {% if product and product.is_trending %}checked{% endif %}> Trending</label>
+          <label class="toggle-label"><input type="checkbox" name="is_new_arrival" {% if product and product.is_new_arrival %}checked{% endif %}> New Arrival</label>
+          <label class="toggle-label"><input type="checkbox" name="is_flash_sale" {% if product and product.is_flash_sale %}checked{% endif %}> Flash Sale</label>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3 class="card-section-title">Size Chart (HTML)</h3>
+        <textarea name="size_chart" rows="4" placeholder="<table>...</table> or leave blank">{{ product.size_chart if product else '' }}</textarea>
+      </div>
+
+      <div class="admin-card">
+        <h3 class="card-section-title">SEO</h3>
+        <div class="form-group"><label>Meta Title</label><input type="text" name="meta_title" value="{{ product.meta_title if product else '' }}" id="metaTitle"></div>
+        <div class="form-group"><label>Meta Description</label><textarea name="meta_description" rows="3">{{ product.meta_description if product else '' }}</textarea></div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Save Product</button>
+        <a href="/x-admin-9f3k2/products" class="btn btn-outline">Cancel</a>
+        {% if product %}
+        <a href="/shop/product/{{ product.slug }}" target="_blank" class="btn btn-outline"><i class="fas fa-eye"></i> Preview</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-fill meta title from product name
+document.getElementById('pname')?.addEventListener('input', function(){
+  const mt = document.getElementById('metaTitle');
+  if(mt && !mt.value) mt.value = this.value;
+});
+
+function addVariant() {
+  const list = document.getElementById('variantsList');
+  const div = document.createElement('div');
+  div.className = 'variant-row';
+  div.innerHTML = `<div class="form-row">
+    <div class="form-group flex-1"><label>Variant Name</label><input type="text" name="variant_name[]" placeholder="Size, Color..."></div>
+    <div class="form-group flex-2"><label>Options (comma separated)</label><input type="text" name="variant_options[]" placeholder="S, M, L, XL"></div>
+    <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.remove()" style="margin-top:1.5rem"><i class="fas fa-times"></i></button>
+  </div>`;
+  list.appendChild(div);
+}
+
+function addSpec() {
+  const list = document.getElementById('specsList');
+  const div = document.createElement('div');
+  div.className = 'form-row spec-row';
+  div.innerHTML = `<div class="form-group flex-1"><input type="text" name="spec_key[]" placeholder="Feature Name"></div>
+    <div class="form-group flex-1"><input type="text" name="spec_value[]" placeholder="Value"></div>
+    <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
+  list.appendChild(div);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ collection|title }}{% endblock %}
+{% block page_title %}Data Vault — {{ collection|replace('_',' ')|title }}{% endblock %}
+{% block content %}
+<div class="card-header mb-3">
+  <a href="/x-admin-9f3k2/data-vault" class="btn btn-outline"><i class="fas fa-arrow-left"></i> All Collections</a>
+  <span style="color:var(--text-muted);font-size:.9rem">{{ records|length }} records</span>
+</div>
+
+{% if records %}
+<div class="admin-card" style="overflow-x:auto">
+  <table class="admin-table vault-table">
+    <thead>
+      <tr>
+        {% set cols = records[0].keys()|list if records else [] %}
+        {% for col in cols %}<th>{{ col }}</th>{% endfor %}
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for record in records %}
+    <tr>
+      {% for key, val in record.items() %}
+      <td class="vault-cell">
+        {% if key == 'password' %}
+          <span class="vault-secret" title="Click to reveal" onclick="this.textContent=this.dataset.val" data-val="{{ val }}">••••••••</span>
+        {% elif val is mapping or val is iterable and val is not string %}
+          <span class="vault-json" onclick="showJson({{ val|tojson }})">
+            {% if val is mapping %}
+              {…{{ val|length }} keys}
+            {% else %}
+              [{{ val|length }} items]
+            {% endif %}
+          </span>
+        {% elif val is string and val|length > 60 %}
+          <span title="{{ val }}">{{ val[:60] }}…</span>
+        {% else %}
+          {{ val }}
+        {% endif %}
+      </td>
+      {% endfor %}
+      <td>
+        {% if collection not in ('settings',) %}
+        <form method="POST" action="/x-admin-9f3k2/data-vault/{{ collection }}/{{ record.id }}/delete"
+              style="display:inline" onsubmit="return confirm('Delete record {{ record.id }}?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-msg admin-card">No records in this collection.</div>
+{% endif %}
+
+<!-- JSON Modal -->
+<div id="jsonModal" class="modal" style="display:none">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('jsonModal').style.display='none'">&times;</button>
+    <h3>Data Preview</h3>
+    <pre id="jsonContent" style="background:#1A1A2E;color:#A0AEC0;padding:1rem;border-radius:8px;overflow:auto;max-height:60vh;font-size:.82rem"></pre>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showJson(data) {
+  document.getElementById('jsonContent').textContent = JSON.stringify(data, null, 2);
+  document.getElementById('jsonModal').style.display = 'flex';
+}
+</script>
+{% endblock %}

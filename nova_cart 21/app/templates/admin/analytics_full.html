@@ -1,0 +1,159 @@
+{% extends "admin/base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics & Insights{% endblock %}
+{% block content %}
+
+<!-- Summary Cards -->
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+  {% for icon, color, val, label in [
+    ('fa-rupee-sign','stat-green','₹'+(stats.total_revenue|int|string),'Total Revenue'),
+    ('fa-shopping-bag','stat-blue',stats.total_orders,'Total Orders'),
+    ('fa-receipt','stat-purple','₹'+(stats.avg_order_value|int|string),'Avg Order'),
+    ('fa-users','stat-orange',stats.total_customers,'Customers'),
+    ('fa-box','stat-teal',stats.total_products,'Products'),
+    ('fa-envelope','stat-blue',stats.newsletter_subs,'Subscribers'),
+    ('fa-coins','stat-orange',stats.loyalty_users,'Loyalty Users'),
+  ] %}
+  <div class="stat-card {{ color }}">
+    <div class="stat-icon"><i class="fas {{ icon }}"></i></div>
+    <div class="stat-info"><span class="stat-value">{{ val }}</span><span class="stat-label">{{ label }}</span></div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Charts Row -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+  <!-- Revenue Chart -->
+  <div class="admin-card">
+    <h3 style="margin-bottom:1rem"><i class="fas fa-chart-area"></i> Revenue (Last 14 Days)</h3>
+    <canvas id="revenueChart" height="200"></canvas>
+  </div>
+  <!-- New Users Chart -->
+  <div class="admin-card">
+    <h3 style="margin-bottom:1rem"><i class="fas fa-user-plus"></i> New Customers (Last 14 Days)</h3>
+    <canvas id="usersChart" height="200"></canvas>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+  <!-- Order Status Donut -->
+  <div class="admin-card">
+    <h3 style="margin-bottom:1rem"><i class="fas fa-chart-pie"></i> Order Status Breakdown</h3>
+    <canvas id="statusChart" height="220"></canvas>
+  </div>
+  <!-- Category Revenue -->
+  <div class="admin-card">
+    <h3 style="margin-bottom:1rem"><i class="fas fa-tags"></i> Revenue by Category</h3>
+    <canvas id="catChart" height="220"></canvas>
+  </div>
+</div>
+
+<!-- Top Products Table -->
+<div class="admin-card">
+  <div class="card-header">
+    <h3><i class="fas fa-trophy"></i> Top Products by Revenue</h3>
+  </div>
+  <table class="admin-table">
+    <thead><tr><th>#</th><th>Product</th><th>Revenue</th><th>Bar</th></tr></thead>
+    <tbody>
+    {% if top_products %}
+    {% set max_rev = top_products[0].revenue %}
+    {% for p in top_products %}
+    <tr>
+      <td style="font-weight:700;color:var(--primary)">{{ loop.index }}</td>
+      <td><a href="/shop/product/{{ p.slug }}" target="_blank" style="color:var(--text)">{{ p.name }}</a></td>
+      <td><strong>₹{{ p.revenue|int }}</strong></td>
+      <td style="width:40%">
+        <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden">
+          <div style="background:var(--primary);height:100%;width:{{ (p.revenue/max_rev*100)|int }}%;border-radius:4px;transition:width .6s"></div>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    {% else %}
+    <tr><td colspan="4" class="empty-msg">No sales data yet</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#6C63FF';
+const secondary = getComputedStyle(document.documentElement).getPropertyValue('--secondary').trim() || '#FF6584';
+const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#43E97B';
+
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#718096';
+
+// Revenue Chart
+new Chart(document.getElementById('revenueChart'), {
+  type: 'line',
+  data: {
+    labels: {{ daily_labels | tojson }}.map(d => d.slice(5)),
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: {{ daily_values | tojson }},
+      borderColor: primary,
+      backgroundColor: primary + '22',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: primary,
+      pointRadius: 4,
+    }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, grid: { color: '#E2E8F0' } }, x: { grid: { display: false } } } }
+});
+
+// Users Chart
+new Chart(document.getElementById('usersChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ user_labels | tojson }}.map(d => d.slice(5)),
+    datasets: [{
+      label: 'New Customers',
+      data: {{ user_values | tojson }},
+      backgroundColor: accent + 'BB',
+      borderColor: accent,
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#E2E8F0' } }, x: { grid: { display: false } } } }
+});
+
+// Status Donut
+const statusData = {{ status_counts | tojson }};
+const statusColors = { pending: '#F6AD55', confirmed: '#63B3ED', shipped: '#9F7AEA', delivered: '#68D391', cancelled: '#FC8181' };
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: Object.keys(statusData).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+    datasets: [{ data: Object.values(statusData),
+      backgroundColor: Object.keys(statusData).map(s => statusColors[s] || '#CBD5E0'),
+      borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+});
+
+// Category Bar
+const catData = {{ cat_revenue | tojson }};
+const catColors = ['#6C63FF','#FF6584','#43E97B','#F093FB','#4FACFE','#F6AD55','#FC8181','#68D391'];
+new Chart(document.getElementById('catChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(catData),
+    datasets: [{ data: Object.values(catData),
+      backgroundColor: catColors, borderRadius: 6, borderWidth: 0 }]
+  },
+  options: { responsive: true, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true, grid: { color: '#E2E8F0' } }, y: { grid: { display: false } } } }
+});
+</script>
+{% endblock %}

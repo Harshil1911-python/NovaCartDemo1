@@ -1,0 +1,26 @@
+{% extends "seller/base.html" %}
+{% block title %}My Products{% endblock %}
+{% block page_title %}My Products{% endblock %}
+{% block content %}
+<div class="card-header mb-3"><a href="/seller/products/add" class="btn btn-primary"><i class="fas fa-plus"></i> Add Product</a></div>
+<div class="admin-card">
+  <table class="admin-table">
+    <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr>
+      <td><img src="{{ p.images[0] if p.images else '/static/images/no-image.png' }}" class="table-thumb"></td>
+      <td>{{ p.name }}</td>
+      <td>{% if p.discount_price %}<span class="price-sale">₹{{ p.discount_price|int }}</span> <span class="price-crossed">₹{{ p.price|int }}</span>{% else %}₹{{ p.price|int }}{% endif %}</td>
+      <td>{% if p.stock < 10 %}<span class="badge-warning">{{ p.stock }}</span>{% else %}{{ p.stock }}{% endif %}</td>
+      <td><span class="status-badge {{ 'status-active' if p.is_active else 'status-inactive' }}">{{ 'Active' if p.is_active else 'Inactive' }}</span></td>
+      <td>
+        <a href="/shop/product/{{ p.slug }}" target="_blank" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i></a>
+        <a href="/seller/products/edit/{{ p.id }}" class="btn btn-sm btn-primary">Edit</a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "admin/base.html" %}
+{% block title %}Testimonials{% endblock %}
+{% block page_title %}Testimonials{% endblock %}
+{% block content %}
+<div class="form-grid-2">
+  <div class="admin-card">
+    <h3>Add Testimonial</h3>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Customer Name</label><input type="text" name="name" required></div>
+      <div class="form-group"><label>Location</label><input type="text" name="location" placeholder="Mumbai, India"></div>
+      <div class="form-group"><label>Rating</label>
+        <select name="rating">
+          {% for i in range(5,0,-1) %}<option value="{{ i }}">{{ i }} Star{{ 's' if i > 1 else '' }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label>Review</label><textarea name="comment" rows="4" required></textarea></div>
+      <button class="btn btn-primary">Add Testimonial</button>
+    </form>
+  </div>
+  <div class="admin-card">
+    <h3>All Testimonials</h3>
+    {% for t in testimonials %}
+    <div class="testimonial-admin-item">
+      <div class="test-header">
+        <strong>{{ t.name }}</strong> — {{ t.location }}
+        <div>{% for i in range(t.rating|int) %}<i class="fas fa-star" style="color:#F6AD55"></i>{% endfor %}</div>
+      </div>
+      <p>{{ t.comment }}</p>
+      <form method="POST" action="/x-admin-9f3k2/testimonials/delete/{{ t.id }}" style="display:inline" onsubmit="return confirm('Delete?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

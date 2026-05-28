@@ -1,0 +1,165 @@
+{% extends "admin/base.html" %}
+{% block title %}Orders{% endblock %}
+{% block page_title %}Orders{% endblock %}
+{% block content %}
+
+<!-- Filters -->
+<div class="admin-card" style="margin-bottom:1rem">
+  <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+    <input type="text" id="orderSearch" placeholder="Search by Order ID or customer..." class="prop-inp" style="flex:1;min-width:200px">
+    <select id="statusFilter" class="prop-inp" style="max-width:160px" onchange="filterOrders()">
+      <option value="">All Statuses</option>
+      {% for s in ['pending','confirmed','shipped','delivered','cancelled'] %}
+      <option value="{{ s }}">{{ s|title }}</option>
+      {% endfor %}
+    </select>
+    <a href="/x-admin-9f3k2/export/orders" class="btn btn-sm btn-outline"><i class="fas fa-download"></i> Export CSV</a>
+    <span id="orderCount" style="font-size:.85rem;color:var(--text-muted)">{{ orders|length }} orders</span>
+  </div>
+</div>
+
+<!-- Bulk Actions -->
+<form method="POST" action="/x-admin-9f3k2/orders/bulk" id="bulkForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem;flex-wrap:wrap">
+    <label style="font-size:.85rem;font-weight:600"><input type="checkbox" id="selectAll" onchange="toggleAll(this)"> Select All</label>
+    <span style="color:var(--text-muted);font-size:.82rem">Bulk action:</span>
+    <button type="submit" name="action" value="confirm" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Confirm</button>
+    <button type="submit" name="action" value="ship" class="btn btn-sm btn-outline"><i class="fas fa-truck"></i> Mark Shipped</button>
+    <button type="submit" name="action" value="deliver" class="btn btn-sm btn-primary"><i class="fas fa-box-open"></i> Mark Delivered</button>
+    <button type="submit" name="action" value="cancel" class="btn btn-sm btn-danger" onclick="return confirm('Cancel selected orders?')"><i class="fas fa-times"></i> Cancel</button>
+  </div>
+
+  <div class="admin-card">
+    <table class="admin-table" id="ordersTable">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="selectAllHead" onchange="toggleAll(this)"></th>
+          <th>Order ID</th><th>Customer</th><th>Address</th>
+          <th>Items</th><th>Total</th><th>Payment</th>
+          <th>Status</th><th>Date</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for o in orders %}
+      <tr class="order-row" data-status="{{ o.status }}" data-search="{{ o.order_id|lower }} {{ o.name|lower }}">
+        <td><input type="checkbox" name="order_ids" value="{{ o.id }}" class="order-checkbox"></td>
+        <td><strong>#{{ o.order_id }}</strong></td>
+        <td>
+          <strong>{{ o.name }}</strong><br>
+          <small>{{ o.email }}</small><br>
+          <small>{{ o.phone }}</small>
+        </td>
+        <td style="font-size:.8rem">{{ o.address }}, {{ o.city }}<br>{{ o.state }} - {{ o.pincode }}</td>
+        <td>{{ o.get('order_lines', o.get('items', []))|length }} items</td>
+        <td><strong>₹{{ o.total|int }}</strong>{% if o.discount and o.discount > 0 %}<br><small class="in-stock">-₹{{ o.discount|int }}</small>{% endif %}</td>
+        <td>{{ 'COD' if o.payment_method == 'cod' else 'Online' }}</td>
+        <td>
+          <form method="POST" action="/x-admin-9f3k2/orders/{{ o.id }}/status" style="display:flex;gap:4px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="status" class="status-select">
+              {% for s in ['pending','confirmed','shipped','delivered','cancelled'] %}
+              <option value="{{ s }}" {% if o.status == s %}selected{% endif %}>{{ s|title }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-primary">✓</button>
+          </form>
+        </td>
+        <td style="font-size:.82rem">{{ o.created_at[:10] if o.created_at else '' }}</td>
+        <td>
+          <button class="btn btn-sm btn-outline" onclick="showOrderDetail({{ o|tojson }})" title="View"><i class="fas fa-eye"></i></button>
+          <button class="btn btn-sm btn-outline" onclick="printInvoice({{ o|tojson }})" title="Invoice"><i class="fas fa-print"></i></button>
+          {% if settings.get('whatsapp_number') %}
+          <a href="https://wa.me/{{ o.phone }}?text=Hi {{ o.name }}, your Nova Cart order %23{{ o.order_id }} status: {{ o.status }}" target="_blank" class="btn btn-sm btn-whatsapp" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+<!-- Order Detail Modal -->
+<div id="orderModal" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:620px">
+    <button class="modal-close" onclick="document.getElementById('orderModal').style.display='none'">&times;</button>
+    <div id="orderModalContent"></div>
+  </div>
+</div>
+
+<!-- Hidden Invoice Template -->
+<div id="invoiceTemplate" style="display:none"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAll(cb){
+  document.querySelectorAll('.order-checkbox').forEach(c=>c.checked=cb.checked);
+  document.getElementById('selectAll').checked = cb.checked;
+  document.getElementById('selectAllHead').checked = cb.checked;
+}
+
+document.getElementById('orderSearch')?.addEventListener('input', filterOrders);
+function filterOrders(){
+  const q = document.getElementById('orderSearch').value.toLowerCase();
+  const st = document.getElementById('statusFilter').value;
+  let vis = 0;
+  document.querySelectorAll('.order-row').forEach(row=>{
+    const matchQ = !q || row.dataset.search.includes(q);
+    const matchS = !st || row.dataset.status === st;
+    row.style.display = matchQ && matchS ? '' : 'none';
+    if(matchQ && matchS) vis++;
+  });
+  document.getElementById('orderCount').textContent = vis + ' orders';
+}
+
+function showOrderDetail(o) {
+  const lines = o.order_lines || o.items || [];
+  let html = `<h3 style="margin-bottom:1rem">Order #${o.order_id}</h3>
+    <div class="detail-grid">
+      <div class="detail-item"><label>Customer</label><span>${o.name}</span></div>
+      <div class="detail-item"><label>Phone</label><span>${o.phone}</span></div>
+      <div class="detail-item"><label>Email</label><span>${o.email||'N/A'}</span></div>
+      <div class="detail-item"><label>Payment</label><span>${o.payment_method==='cod'?'Cash on Delivery':'Online'}</span></div>
+    </div>
+    <p style="background:var(--bg);border-radius:8px;padding:.75rem;font-size:.88rem;margin-bottom:1rem">
+      <i class="fas fa-map-marker-alt" style="color:var(--primary)"></i> ${o.address}, ${o.city}, ${o.state} - ${o.pincode}
+    </p>
+    <table class="admin-table"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead><tbody>`;
+  lines.forEach(i=>{ html+=`<tr><td>${i.name}</td><td>${i.quantity}</td><td>₹${i.price||0}</td><td>₹${i.subtotal||0}</td></tr>`; });
+  html += `</tbody></table>`;
+  if(o.discount>0) html+=`<p style="text-align:right;margin-top:.5rem">Discount: <span class="in-stock">-₹${o.discount}</span></p>`;
+  html+=`<p style="text-align:right;font-size:1.1rem;font-weight:700;margin-top:.25rem">Total: ₹${o.total}</p>`;
+  document.getElementById('orderModalContent').innerHTML = html;
+  document.getElementById('orderModal').style.display = 'flex';
+}
+
+function printInvoice(o) {
+  const lines = o.order_lines || o.items || [];
+  const siteName = '{{ settings.get("site_name","Nova Cart") }}';
+  let rows = lines.map(i=>`<tr><td style="padding:.5rem;border:1px solid #ddd">${i.name}</td><td style="padding:.5rem;border:1px solid #ddd;text-align:center">${i.quantity}</td><td style="padding:.5rem;border:1px solid #ddd;text-align:right">₹${i.subtotal||0}</td></tr>`).join('');
+  const html = `<html><head><title>Invoice #${o.order_id}</title></head><body style="font-family:Arial,sans-serif;max-width:650px;margin:2rem auto;padding:1rem">
+    <div style="display:flex;justify-content:space-between;margin-bottom:1.5rem">
+      <div><h2 style="color:#6C63FF;margin:0">${siteName}</h2><p style="color:#718096;font-size:.85rem">Tax Invoice</p></div>
+      <div style="text-align:right"><strong>Order #${o.order_id}</strong><p style="color:#718096;font-size:.85rem">${o.created_at?o.created_at.slice(0,10):''}</p></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+      <div><strong>Bill To:</strong><p>${o.name}<br>${o.phone}<br>${o.email||''}</p></div>
+      <div><strong>Ship To:</strong><p>${o.address}<br>${o.city}, ${o.state} - ${o.pincode}</p></div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:1rem">
+      <thead><tr style="background:#F0F2F8"><th style="padding:.5rem;border:1px solid #ddd;text-align:left">Item</th><th style="padding:.5rem;border:1px solid #ddd;text-align:center">Qty</th><th style="padding:.5rem;border:1px solid #ddd;text-align:right">Amount</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${o.discount>0?`<p style="text-align:right">Discount: -₹${o.discount}</p>`:''}
+    <p style="text-align:right;font-size:1.1rem"><strong>Total: ₹${o.total}</strong></p>
+    <p style="text-align:right;color:#718096">Payment: ${o.payment_method==='cod'?'Cash on Delivery':'Online'}</p>
+    <hr><p style="text-align:center;color:#A0AEC0;font-size:.85rem">Thank you for shopping with ${siteName}!</p>
+    </body></html>`;
+  const w = window.open('','_blank');
+  w.document.write(html); w.document.close();
+  setTimeout(()=>w.print(), 500);
+}
+</script>
+{% endblock %}

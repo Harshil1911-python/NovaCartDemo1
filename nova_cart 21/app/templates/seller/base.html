@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{% block title %}Seller{% endblock %} | Nova Cart Seller</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+  <aside class="admin-sidebar" id="sellerSidebar">
+    <div class="admin-brand">
+      <i class="fas fa-store"></i>
+      <span>Seller Portal</span>
+    </div>
+    <nav class="admin-nav">
+      <a href="/seller/dashboard" class="anav {% if 'dashboard' in request.path %}active{% endif %}">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+      </a>
+      <div class="anav-group">
+        <span class="anav-label">Products</span>
+        <a href="/seller/products" class="anav {% if request.path=='/seller/products' %}active{% endif %}">
+          <i class="fas fa-box"></i> My Products
+        </a>
+        <a href="/seller/products/add" class="anav {% if 'add' in request.path %}active{% endif %}">
+          <i class="fas fa-plus"></i> Add Product
+        </a>
+      </div>
+      <div class="anav-group">
+        <span class="anav-label">Sales</span>
+        <a href="/seller/orders" class="anav {% if 'orders' in request.path %}active{% endif %}">
+          <i class="fas fa-shopping-bag"></i> Orders
+        </a>
+      </div>
+      <div class="anav-group">
+        <span class="anav-label">Store</span>
+        <a href="/seller/profile" class="anav {% if 'profile' in request.path %}active{% endif %}">
+          <i class="fas fa-store-alt"></i> Store Profile
+        </a>
+      </div>
+      <a href="/shop/store/{{ current_seller.slug if current_seller else '' }}" class="anav" target="_blank">
+        <i class="fas fa-external-link-alt"></i> View My Store
+      </a>
+      <a href="/seller/logout" class="anav text-danger">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </a>
+    </nav>
+  </aside>
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <button onclick="document.getElementById('sellerSidebar').classList.toggle('open')">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+      {% if current_seller %}
+      <div class="topbar-right" style="font-size:.85rem;color:var(--text-muted)">
+        <i class="fas fa-store"></i> {{ current_seller.shop_name }}
+      </div>
+      {% endif %}
+    </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="admin-flash">
+      {% for c,m in messages %}
+      <div class="flash flash-{{ c }}">{{ m }} <button onclick="this.parentElement.remove()">&times;</button></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <div class="admin-content">{% block content %}{% endblock %}</div>
+  </div>
+</div>
+<script src="/static/js/admin.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

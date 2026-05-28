@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Checkout{% endblock %}
+{% block content %}
+<div class="container">
+  <!-- Progress Bar -->
+  <div class="checkout-steps">
+    <div class="step active"><span>1</span> Cart</div>
+    <div class="step-line active"></div>
+    <div class="step active"><span>2</span> Details</div>
+    <div class="step-line"></div>
+    <div class="step"><span>3</span> Confirm</div>
+  </div>
+
+  <div class="checkout-layout">
+    <div class="checkout-form-col">
+      <form method="POST" action="/cart/checkout" id="checkoutForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% if addresses %}
+        <div class="checkout-section">
+          <h3>Saved Addresses</h3>
+          <div class="saved-addresses">
+            {% for addr in addresses %}
+            <div class="saved-addr-card" onclick="fillAddress(this)"
+                 data-name="{{ addr.name }}" data-phone="{{ addr.phone }}"
+                 data-address="{{ addr.address }}" data-city="{{ addr.city }}"
+                 data-state="{{ addr.state }}" data-pincode="{{ addr.pincode }}">
+              <strong>{{ addr.name }}</strong>
+              <p>{{ addr.address }}, {{ addr.city }} - {{ addr.pincode }}</p>
+              <p>{{ addr.phone }}</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="checkout-section">
+          <h3>Delivery Details</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Full Name *</label><input type="text" name="name" id="f_name" value="{{ user.name if user else '' }}" required></div>
+            <div class="form-group"><label>Phone *</label><input type="tel" name="phone" id="f_phone" value="{{ user.phone if user else '' }}" required></div>
+            <div class="form-group full-width"><label>Email *</label><input type="email" name="email" id="f_email" value="{{ user.email if user else '' }}" required></div>
+            <div class="form-group full-width"><label>Address *</label><textarea name="address" id="f_address" rows="2" required></textarea></div>
+            <div class="form-group"><label>City *</label><input type="text" name="city" id="f_city" required></div>
+            <div class="form-group"><label>State</label><input type="text" name="state" id="f_state"></div>
+            <div class="form-group"><label>Pincode *</label><input type="text" name="pincode" id="f_pincode" required></div>
+          </div>
+          <label class="checkbox-label"><input type="checkbox" name="save_address" checked> Save this address</label>
+        </div>
+
+        <div class="checkout-section">
+          <h3>Payment Method</h3>
+          <div class="payment-options">
+            <label class="payment-option">
+              <input type="radio" name="payment_method" value="cod" checked>
+              <span><i class="fas fa-money-bill-wave"></i> Cash on Delivery</span>
+            </label>
+            <label class="payment-option payment-disabled">
+              <input type="radio" name="payment_method" value="online" disabled>
+              <span><i class="fas fa-credit-card"></i> Online Payment <small>(Coming Soon)</small></span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg">
+          <i class="fas fa-check"></i> Place Order — ₹{{ total|int }}
+        </button>
+      </form>
+    </div>
+
+    <div class="checkout-summary-col">
+      <div class="order-summary-card">
+        <h3>Order Summary</h3>
+        {% for item in items %}
+        <div class="summary-item">
+          <span>{{ item.product.name }} × {{ item.quantity }}</span>
+          <strong>₹{{ item.subtotal|int }}</strong>
+        </div>
+        {% endfor %}
+        <hr>
+        <div class="summary-row"><span>Subtotal</span><strong>₹{{ subtotal|int }}</strong></div>
+
+        <!-- Coupon -->
+        <div class="coupon-box">
+          {% if coupon_data %}
+          <div class="coupon-applied">
+            <i class="fas fa-tag"></i> <strong>{{ coupon_data.code }}</strong> applied
+            <span class="coupon-save">-₹{{ coupon_data.discount|int }}</span>
+            <button type="button" onclick="removeCoupon()" class="coupon-remove">✕</button>
+          </div>
+          {% else %}
+          <div class="coupon-input-row">
+            <input type="text" id="couponInput" placeholder="Enter coupon code" class="coupon-input">
+            <button type="button" onclick="applyCoupon()" class="btn btn-sm btn-outline">Apply</button>
+          </div>
+          <p id="couponMsg" class="coupon-msg"></p>
+          {% if coupons_available %}
+          <div class="available-coupons">
+            {% for c in coupons_available[:3] %}
+            <span class="coupon-chip" onclick="document.getElementById('couponInput').value='{{ c.code }}'">{{ c.code }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% endif %}
+        </div>
+
+        {% if discount > 0 %}
+        <div class="summary-row text-success"><span>Discount</span><strong>-₹{{ discount|int }}</strong></div>
+        {% endif %}
+        <div class="summary-row"><span>Shipping</span><strong class="text-success">FREE</strong></div>
+        <div class="summary-row total-row"><span>Total</span><strong>₹{{ total|int }}</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fillAddress(el) {
+  document.querySelectorAll('.saved-addr-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  ['name','phone','address','city','state','pincode'].forEach(f => {
+    const inp = document.getElementById('f_'+f);
+    if(inp) inp.value = el.dataset[f] || '';
+  });
+}
+function applyCoupon() {
+  const code = document.getElementById('couponInput')?.value.trim();
+  if(!code) return;
+  fetch('/cart/apply-coupon', {
+    method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+    body: JSON.stringify({code})
+  }).then(r=>r.json()).then(d=>{
+    const msg = document.getElementById('couponMsg');
+    if(d.status==='ok') { location.reload(); }
+    else { if(msg) { msg.textContent = d.msg; msg.style.color='#FC8181'; } }
+  });
+}
+function removeCoupon() {
+  fetch('/cart/remove-coupon', {method:'POST',headers:{'X-CSRFToken':getCsrf()}}).then(()=>location.reload());
+}
+</script>
+{% endblock %}
