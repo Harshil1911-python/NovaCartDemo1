@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="container" style="max-width:700px;padding:2rem 1.25rem">
+  <h1 class="page-title"><i class="fas fa-bell"></i> Notifications</h1>
+  {% if notifications %}
+  <div style="display:flex;flex-direction:column;gap:.75rem">
+    {% for n in notifications %}
+    <div style="display:flex;gap:1rem;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1rem;{{ 'border-left:4px solid var(--primary)' if not n.read else '' }}">
+      <div style="width:40px;height:40px;border-radius:50%;background:{{ 'rgba(108,99,255,.1)' if n.type=='info' else 'rgba(72,187,120,.1)' if n.type=='success' else 'rgba(252,129,129,.1)' }};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="{{ 'fas fa-info-circle' if n.type=='info' else 'fas fa-check-circle' if n.type=='success' else 'fas fa-exclamation-circle' }}" style="color:{{ 'var(--primary)' if n.type=='info' else '#48BB78' if n.type=='success' else '#FC8181' }}"></i>
+      </div>
+      <div style="flex:1">
+        <strong style="display:block;font-size:.92rem">{{ n.title }}</strong>
+        <p style="font-size:.85rem;color:var(--text-muted);margin:.2rem 0">{{ n.message }}</p>
+        <span style="font-size:.76rem;color:var(--text-muted)">{{ n.created_at[:16] if n.created_at else '' }}</span>
+        {% if n.link %}
+        <a href="{{ n.link }}" style="font-size:.82rem;color:var(--primary);margin-left:.75rem">View →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-bell-slash fa-3x"></i>
+    <h3>No notifications yet</h3>
+    <p>You'll see order updates, points earned, and more here.</p>
+    <a href="/shop" class="btn btn-primary">Start Shopping</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

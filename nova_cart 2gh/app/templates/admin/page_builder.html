@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+{% block title %}Page Builder{% endblock %}
+{% block page_title %}Visual Page Builder{% endblock %}
+{% block content %}
+<div class="card-header mb-3">
+  <a href="/x-admin-9f3k2/page-builder/new" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Create New Page
+  </a>
+  <span style="color:var(--text-muted);font-size:.9rem">{{ pages|length }} pages</span>
+</div>
+
+{% if pages %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem">
+  {% for p in pages %}
+  <div class="admin-card" style="margin-bottom:0">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
+      <div>
+        <h4 style="font-size:1rem;font-weight:700;margin-bottom:.25rem">{{ p.title }}</h4>
+        <code style="font-size:.78rem;color:var(--text-muted)">/page/{{ p.slug }}</code>
+      </div>
+      <span class="status-badge {{ 'status-active' if p.is_published else 'status-inactive' }}">
+        {{ 'Live' if p.is_published else 'Draft' }}
+      </span>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <a href="/x-admin-9f3k2/page-builder/edit/{{ p.id }}" class="btn btn-primary btn-sm">
+        <i class="fas fa-paint-brush"></i> Edit in Builder
+      </a>
+      <a href="/page/{{ p.slug }}" target="_blank" class="btn btn-outline btn-sm">
+        <i class="fas fa-eye"></i> Preview
+      </a>
+      <form method="POST" action="/x-admin-9f3k2/pages/delete/{{ p.id }}" style="display:inline"
+            onsubmit="return confirm('Delete this page?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="admin-card">
+  <div class="empty-msg">
+    <i class="fas fa-file-alt" style="font-size:3rem;opacity:.3;display:block;margin-bottom:1rem"></i>
+    <p>No pages yet. Create your first page with the Visual Builder!</p>
+    <a href="/x-admin-9f3k2/page-builder/new" class="btn btn-primary mt-3">
+      <i class="fas fa-plus"></i> Create First Page
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

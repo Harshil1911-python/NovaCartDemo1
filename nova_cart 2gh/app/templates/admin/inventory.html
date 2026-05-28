@@ -1,0 +1,89 @@
+{% extends "admin/base.html" %}
+{% block title %}Inventory{% endblock %}
+{% block page_title %}Inventory Management{% endblock %}
+{% block content %}
+
+<!-- Summary -->
+<div class="stats-grid" style="margin-bottom:1.5rem">
+  <div class="stat-card stat-red"><div class="stat-icon"><i class="fas fa-times-circle"></i></div><div class="stat-info"><span class="stat-value">{{ out_of_stock|length }}</span><span class="stat-label">Out of Stock</span></div></div>
+  <div class="stat-card stat-orange"><div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><span class="stat-value">{{ low_stock|length }}</span><span class="stat-label">Low Stock (≤10)</span></div></div>
+  <div class="stat-card stat-green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><span class="stat-value">{{ in_stock|length }}</span><span class="stat-label">In Stock</span></div></div>
+  <div class="stat-card stat-blue"><div class="stat-icon"><i class="fas fa-box"></i></div><div class="stat-info"><span class="stat-value">{{ products|length }}</span><span class="stat-label">Total Products</span></div></div>
+</div>
+
+<!-- Bulk Update Form -->
+<form method="POST" action="/x-admin-9f3k2/inventory/update">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {% if out_of_stock %}
+  <div class="admin-card" style="border-left:4px solid #FC8181">
+    <h3 style="color:#FC8181"><i class="fas fa-times-circle"></i> Out of Stock ({{ out_of_stock|length }})</h3>
+    <table class="admin-table">
+      <thead><tr><th>Image</th><th>Product</th><th>Category</th><th>New Stock</th></tr></thead>
+      <tbody>
+      {% for p in out_of_stock %}
+      <tr>
+        <td><img src="{{ p.images[0] if p.images else '/static/images/no-image.png' }}" class="table-thumb"></td>
+        <td><a href="/shop/product/{{ p.slug }}" target="_blank">{{ p.name }}</a></td>
+        <td>{{ p.category_name }}</td>
+        <td><input type="number" name="stock_{{ p.id }}" value="0" min="0" class="prop-inp" style="width:80px"></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if low_stock %}
+  <div class="admin-card" style="border-left:4px solid #ED8936">
+    <h3 style="color:#ED8936"><i class="fas fa-exclamation-triangle"></i> Low Stock ({{ low_stock|length }})</h3>
+    <table class="admin-table">
+      <thead><tr><th>Image</th><th>Product</th><th>Current</th><th>New Stock</th></tr></thead>
+      <tbody>
+      {% for p in low_stock %}
+      <tr>
+        <td><img src="{{ p.images[0] if p.images else '/static/images/no-image.png' }}" class="table-thumb"></td>
+        <td><a href="/shop/product/{{ p.slug }}" target="_blank">{{ p.name }}</a></td>
+        <td><span class="badge-warning">{{ p.stock }}</span></td>
+        <td><input type="number" name="stock_{{ p.id }}" value="{{ p.stock }}" min="0" class="prop-inp" style="width:80px"></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- All Products Quick Edit -->
+  <div class="admin-card">
+    <div class="card-header">
+      <h3>All Products Stock</h3>
+      <div style="display:flex;gap:.5rem">
+        <a href="/x-admin-9f3k2/export/products" class="btn btn-sm btn-outline"><i class="fas fa-download"></i> Export CSV</a>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save All Changes</button>
+      </div>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Current Stock</th><th>Update Stock</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for p in products %}
+      <tr>
+        <td style="font-weight:600">{{ p.name[:35] }}</td>
+        <td>{{ p.category_name }}</td>
+        <td>₹{{ p.discount_price or p.price }}</td>
+        <td>
+          {% if p.stock == 0 %}<span class="out-stock">0</span>
+          {% elif p.stock <= 10 %}<span class="low-stock">{{ p.stock }}</span>
+          {% else %}<span class="in-stock">{{ p.stock }}</span>{% endif %}
+        </td>
+        <td><input type="number" name="stock_{{ p.id }}" value="{{ p.stock }}" min="0" class="prop-inp" style="width:80px"></td>
+        <td><span class="status-badge {{ 'status-active' if p.is_active else 'status-inactive' }}">{{ 'Active' if p.is_active else 'Off' }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="position:sticky;bottom:0;background:var(--bg);padding:1rem 0">
+    <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Save All Stock Changes</button>
+  </div>
+</form>
+{% endblock %}

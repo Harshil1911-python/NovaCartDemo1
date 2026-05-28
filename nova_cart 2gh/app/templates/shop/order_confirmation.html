@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Order Confirmed!{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="order-success-card">
+    <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+    <h1>Order Placed Successfully!</h1>
+    <p class="order-id-label">Order ID: <strong>#{{ order.order_id }}</strong></p>
+    <p>Thank you, <strong>{{ order.name }}</strong>! Your order has been received.</p>
+
+    <div class="order-details">
+      <h3>Order Items</h3>
+      {% for item in order_lines %}
+      <div class="order-item-row">
+        <span>{{ item.name }} × {{ item.quantity }}</span>
+        <strong>₹{{ item.subtotal|int }}</strong>
+      </div>
+      {% endfor %}
+      <hr>
+      {% if order.discount and order.discount > 0 %}
+      <div class="order-item-row">
+        <span>Discount {% if order.coupon_code %}({{ order.coupon_code }}){% endif %}</span>
+        <strong class="text-success">-₹{{ order.discount|int }}</strong>
+      </div>
+      {% endif %}
+      <div class="order-item-row"><span>Shipping</span><strong class="text-success">FREE</strong></div>
+      <div class="order-item-row total-row"><span>Total Paid</span><strong>₹{{ order.total|int }}</strong></div>
+    </div>
+
+    <div class="delivery-info">
+      <h3>Delivery Address</h3>
+      <p>{{ order.address }}, {{ order.city }}, {{ order.state }} - {{ order.pincode }}</p>
+      <p><i class="fas fa-phone"></i> {{ order.phone }}</p>
+    </div>
+
+    <!-- Order Tracking Steps -->
+    <div class="order-tracking-preview">
+      <h3>Order Status</h3>
+      <div class="tracking-steps">
+        {% set steps = [('pending','Order Placed','fas fa-shopping-bag'),('confirmed','Confirmed','fas fa-check'),('shipped','Shipped','fas fa-truck'),('delivered','Delivered','fas fa-box-open')] %}
+        {% set status_order = ['pending','confirmed','shipped','delivered'] %}
+        {% set current_idx = status_order.index(order.status) if order.status in status_order else 0 %}
+        {% for key, label, icon in steps %}
+        {% set idx = loop.index0 %}
+        <div class="track-step {{ 'done' if idx <= current_idx else '' }}">
+          <div class="track-icon"><i class="{{ icon }}"></i></div>
+          <span>{{ label }}</span>
+        </div>
+        {% if not loop.last %}<div class="track-line {{ 'done' if idx < current_idx else '' }}"></div>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="payment-info" style="margin:1rem 0">
+      <span class="payment-badge">
+        <i class="fas fa-money-bill-wave"></i>
+        {{ 'Cash on Delivery' if order.payment_method == 'cod' else 'Online Payment' }}
+      </span>
+    </div>
+
+    {% if settings.get('whatsapp_number') %}
+    <a href="https://wa.me/{{ settings.get('whatsapp_number') }}?text=Hi! My order ID is %23{{ order.order_id }}. Please confirm."
+       class="btn btn-whatsapp mt-2" target="_blank">
+      <i class="fab fa-whatsapp"></i> Confirm on WhatsApp
+    </a>
+    {% endif %}
+
+    <div class="success-actions">
+      <button onclick="printInvoice()" class="btn btn-outline"><i class="fas fa-print"></i> Print Invoice</button>
+      <a href="/cart/track/{{ order.order_id }}" class="btn btn-outline"><i class="fas fa-map-marker-alt"></i> Track Order</a>
+      <a href="/shop" class="btn btn-primary">Continue Shopping</a>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden invoice for print -->
+<div id="invoicePrint" style="display:none">
+  <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:2rem">
+    <h2 style="color:#6C63FF">{{ settings.get('site_name','Nova Cart') }} — Invoice</h2>
+    <hr>
+    <p><strong>Order ID:</strong> #{{ order.order_id }}</p>
+    <p><strong>Date:</strong> {{ order.created_at[:10] if order.created_at else '' }}</p>
+    <p><strong>Customer:</strong> {{ order.name }} | {{ order.phone }}</p>
+    <p><strong>Address:</strong> {{ order.address }}, {{ order.city }}, {{ order.state }} - {{ order.pincode }}</p>
+    <hr>
+    <table style="width:100%;border-collapse:collapse;margin:1rem 0">
+      <thead>
+        <tr style="background:#F0F2F8">
+          <th style="padding:.5rem;text-align:left;border:1px solid #ddd">Item</th>
+          <th style="padding:.5rem;text-align:center;border:1px solid #ddd">Qty</th>
+          <th style="padding:.5rem;text-align:right;border:1px solid #ddd">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order_lines %}
+        <tr>
+          <td style="padding:.5rem;border:1px solid #ddd">{{ item.name }}</td>
+          <td style="padding:.5rem;text-align:center;border:1px solid #ddd">{{ item.quantity }}</td>
+          <td style="padding:.5rem;text-align:right;border:1px solid #ddd">₹{{ item.subtotal|int }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if order.discount and order.discount > 0 %}
+    <p style="text-align:right">Discount: -₹{{ order.discount|int }}</p>
+    {% endif %}
+    <p style="text-align:right;font-size:1.1rem"><strong>Total: ₹{{ order.total|int }}</strong></p>
+    <p style="text-align:right">Payment: {{ 'Cash on Delivery' if order.payment_method == 'cod' else 'Online' }}</p>
+    <hr>
+    <p style="text-align:center;color:#718096;font-size:.85rem">Thank you for shopping with {{ settings.get('site_name','Nova Cart') }}!</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function printInvoice() {
+  const content = document.getElementById('invoicePrint').innerHTML;
+  const win = window.open('', '_blank');
+  win.document.write('<html><head><title>Invoice #{{ order.order_id }}</title></head><body>' + content + '</body></html>');
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+</script>
+{% endblock %}

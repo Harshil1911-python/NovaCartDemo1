@@ -1,0 +1,118 @@
+{% extends "admin/base.html" %}
+{% block title %}Theme{% endblock %}
+{% block page_title %}Theme Customizer{% endblock %}
+{% block content %}
+<form method="POST" class="admin-form" id="themeForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid-2">
+    <div class="admin-card">
+      <h3>Color Palette</h3>
+      <div class="color-grid">
+        {% for key, label in [
+          ('primary_color','Primary Color'),
+          ('secondary_color','Secondary Color'),
+          ('accent_color','Accent Color'),
+          ('bg_color','Background Color'),
+          ('navbar_color','Navbar Background'),
+          ('footer_color','Footer Background'),
+          ('text_color','Text Color')
+        ] %}
+        <div class="color-picker-item">
+          <label>{{ label }}</label>
+          <div class="color-picker-row">
+            <input type="color" name="{{ key }}" value="{{ s.get(key,'#6C63FF') }}" id="cp_{{ key }}" oninput="previewColor('{{ key }}',this.value)">
+            <input type="text" value="{{ s.get(key,'#6C63FF') }}" id="ct_{{ key }}" oninput="document.getElementById('cp_{{ key }}').value=this.value">
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <div class="admin-card">
+        <h3>Typography & Shapes</h3>
+        <div class="form-group">
+          <label>Font Family</label>
+          <select name="font_family" id="fontSelect" onchange="previewFont(this.value)">
+            {% for f in ['Inter, sans-serif','Poppins, sans-serif','Roboto, sans-serif','Nunito, sans-serif','Montserrat, sans-serif','Raleway, sans-serif'] %}
+            <option value="{{ f }}" {% if s.get('font_family') == f %}selected{% endif %}>{{ f.split(',')[0] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Button Border Radius</label>
+          <input type="text" name="button_radius" value="{{ s.get('button_radius','8px') }}" placeholder="8px">
+        </div>
+        <div class="form-group">
+          <label>Card Border Radius</label>
+          <input type="text" name="card_radius" value="{{ s.get('card_radius','12px') }}" placeholder="12px">
+        </div>
+        <div class="form-group">
+          <label class="toggle-label">
+            <input type="checkbox" name="dark_mode" value="true" {% if s.get('dark_mode')=='true' %}checked{% endif %}> Dark Mode
+          </label>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3>Quick Themes</h3>
+        <div class="theme-presets">
+          {% for name, colors in [
+            ('Default Purple','#6C63FF,#FF6584,#43E97B,#F8F9FA,#FFFFFF,#1A1A2E,#2D3748'),
+            ('Ocean Blue','#0077B6,#00B4D8,#90E0EF,#F0F4F8,#FFFFFF,#023E8A,#1B2A3B'),
+            ('Forest Green','#2D6A4F,#52B788,#95D5B2,#F8FAF9,#FFFFFF,#1B4332,#2D3748'),
+            ('Sunset Red','#E63946,#F4A261,#E9C46A,#FFF9F0,#FFFFFF,#1D1D2E,#2D3748'),
+            ('Royal Gold','#9B2335,#C9A84C,#F5E6C8,#FFFDF7,#FFFFFF,#1A0A00,#2D3748')
+          ] %}
+          <button type="button" class="theme-preset-btn" onclick="applyPreset('{{ colors }}')">{{ name }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h3>Custom Code</h3>
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label>Custom CSS</label>
+        <textarea name="custom_css" rows="6" placeholder="/* Your custom CSS */">{{ s.get('custom_css','') }}</textarea>
+      </div>
+      <div class="form-group flex-1">
+        <label>Custom JS</label>
+        <textarea name="custom_js" rows="6" placeholder="// Your custom JavaScript">{{ s.get('custom_js','') }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-paint-brush"></i> Apply Theme</button>
+    <a href="/" target="_blank" class="btn btn-outline">Preview Site</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewColor(key, val) {
+  document.getElementById('ct_'+key).value = val;
+  const map = {
+    'primary_color':'--primary','secondary_color':'--secondary','accent_color':'--accent',
+    'bg_color':'--bg','navbar_color':'--navbar-bg','footer_color':'--footer-bg','text_color':'--text'
+  };
+  if(map[key]) document.documentElement.style.setProperty(map[key], val);
+}
+function previewFont(f) {
+  document.body.style.fontFamily = f;
+}
+function applyPreset(colors) {
+  const keys = ['primary_color','secondary_color','accent_color','bg_color','navbar_color','footer_color','text_color'];
+  const vals = colors.split(',');
+  keys.forEach((k,i)=>{
+    const cp = document.getElementById('cp_'+k);
+    const ct = document.getElementById('ct_'+k);
+    if(cp && vals[i]) { cp.value = vals[i]; ct.value = vals[i]; previewColor(k, vals[i]); }
+  });
+}
+</script>
+{% endblock %}

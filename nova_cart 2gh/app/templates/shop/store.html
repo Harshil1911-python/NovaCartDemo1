@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ seller.shop_name }} Store{% endblock %}
+{% block content %}
+<div class="store-hero" style="{% if seller.banner %}background-image:url('{{ seller.banner }}');{% endif %}">
+  <div class="store-hero-overlay"></div>
+  <div class="container store-hero-content">
+    {% if seller.logo %}<img src="{{ seller.logo }}" class="store-logo">{% endif %}
+    <h1>{{ seller.shop_name }}</h1>
+    <p>{{ seller.description }}</p>
+  </div>
+</div>
+<div class="container mt-4">
+  <h2>Products by {{ seller.shop_name }}</h2>
+  {% if products %}
+  <div class="products-grid">
+    {% for product in products %}{% include 'partials/product_card.html' %}{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="fas fa-box fa-3x"></i><p>No products yet.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "admin/base.html" %}
+{% block title %}Backup{% endblock %}
+{% block page_title %}Data Backup{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <h3>Create Backup</h3>
+  <p>Manually create a backup of your <code>data.dat</code> file.</p>
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-primary"><i class="fas fa-download"></i> Create Backup Now</button>
+  </form>
+</div>
+<div class="admin-card mt-3">
+  <h3>Backup History</h3>
+  {% if backups %}
+  <table class="admin-table">
+    <thead><tr><th>Filename</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for b in backups %}
+    <tr><td>{{ b }}</td><td>{{ b[5:13] }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-msg">No backups yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

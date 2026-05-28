@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% block title %}Edit Page{% endblock %}
+{% block page_title %}Edit Page{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group"><label>Title</label><input type="text" name="title" value="{{ page.title }}" required></div>
+    <div class="form-group"><label>Content (HTML)</label><textarea name="content" rows="15">{{ page.content }}</textarea></div>
+    <div class="form-row">
+      <div class="form-group flex-1"><label>Meta Title</label><input type="text" name="meta_title" value="{{ page.meta_title }}"></div>
+      <div class="form-group flex-1"><label>Meta Description</label><input type="text" name="meta_description" value="{{ page.meta_description }}"></div>
+    </div>
+    <label class="toggle-label"><input type="checkbox" name="is_published" {% if page.is_published %}checked{% endif %}> Published</label>
+    <div class="form-actions mt-3">
+      <button class="btn btn-primary">Save Page</button>
+      <a href="/x-admin-9f3k2/pages" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "admin/base.html" %}
+{% block title %}Pages{% endblock %}
+{% block page_title %}Raw Pages (HTML Editor){% endblock %}
+{% block content %}
+<div class="card-header mb-3" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+  <a href="/x-admin-9f3k2/page-builder/new" class="btn btn-primary">
+    <i class="fas fa-paint-brush"></i> Visual Builder
+  </a>
+  <span style="color:var(--text-muted);font-size:.88rem">or use the raw HTML editor below:</span>
+</div>
+
+<!-- Quick Templates -->
+<div class="admin-card" style="margin-bottom:1.25rem">
+  <h3><i class="fas fa-magic"></i> Page Templates — Click to Insert</h3>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    {% for name, code in [
+      ('About Us', '<h1>About Us</h1><p>We are Nova Cart...</p>'),
+      ('Contact', '<h1>Contact Us</h1><p>Email: hello@novacart.com</p>'),
+      ('Privacy Policy', '<h1>Privacy Policy</h1><p>We respect your privacy...</p>'),
+      ('FAQ', '<h2>FAQ</h2><details><summary>Q: What is your return policy?</summary><p>7 days return.</p></details>'),
+      ('Landing Page', '<div style="text-align:center;padding:4rem 2rem;background:linear-gradient(135deg,#6C63FF,#FF6584);color:#fff;border-radius:12px"><h1>Big Sale!</h1><p>Up to 50% off</p><a href="/shop" style="background:#fff;color:#6C63FF;padding:.75rem 2rem;border-radius:8px;font-weight:700;text-decoration:none">Shop Now</a></div>'),
+      ('Festival Offer', '<div style="text-align:center;padding:3rem;background:linear-gradient(135deg,#FF6B6B,#FFE66D);border-radius:12px"><h1 style="font-size:2.5rem">🎉 Festival Sale!</h1><h2>Up to 70% Off</h2><a href="/shop?sale=1" style="background:#fff;color:#FF6B6B;padding:.75rem 2rem;border-radius:8px;font-weight:700;text-decoration:none;display:inline-block;margin-top:1rem">Grab Deals</a></div>'),
+    ] %}
+    <button type="button" class="btn btn-sm btn-outline" onclick="insertTemplate({{ code|tojson }})">
+      {{ name }}
+    </button>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="form-grid-2">
+  <!-- Create Page Form -->
+  <div class="admin-card">
+    <h3>Create Page</h3>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Page Title</label><input type="text" name="title" id="newPageTitle" required placeholder="About Us"></div>
+      <div class="form-group">
+        <label>Content (HTML supported)</label>
+        <textarea name="content" id="newPageContent" rows="10" placeholder="<h2>Page title</h2><p>Content here...</p>" style="font-family:monospace;font-size:.85rem"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group flex-1"><label>Meta Title</label><input type="text" name="meta_title"></div>
+        <div class="form-group flex-1"><label>Meta Description</label><input type="text" name="meta_description"></div>
+      </div>
+      <label class="toggle-label mb-2"><input type="checkbox" name="is_published" checked> Published</label>
+      <button class="btn btn-primary mt-2">Create Page</button>
+    </form>
+  </div>
+
+  <!-- Pages List -->
+  <div class="admin-card">
+    <h3>All Pages ({{ pages|length }})</h3>
+    {% for p in pages %}
+    <div style="border:1px solid var(--border);border-radius:10px;padding:.85rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+        <div>
+          <strong>{{ p.title }}</strong>
+          <br><code style="font-size:.78rem;color:var(--text-muted)">/page/{{ p.slug }}</code>
+        </div>
+        <span class="status-badge {{ 'status-active' if p.is_published else 'status-inactive' }}">
+          {{ 'Live' if p.is_published else 'Draft' }}
+        </span>
+      </div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <a href="/x-admin-9f3k2/pages/edit/{{ p.id }}" class="btn btn-sm btn-primary">
+          <i class="fas fa-edit"></i> Edit HTML
+        </a>
+        <a href="/x-admin-9f3k2/page-builder/edit/{{ p.id }}" class="btn btn-sm btn-outline">
+          <i class="fas fa-paint-brush"></i> Visual
+        </a>
+        <a href="/page/{{ p.slug }}" target="_blank" class="btn btn-sm btn-outline">
+          <i class="fas fa-eye"></i>
+        </a>
+        <form method="POST" action="/x-admin-9f3k2/pages/delete/{{ p.id }}" style="display:inline"
+              onsubmit="return confirm('Delete?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function insertTemplate(code) {
+  const ta = document.getElementById('newPageContent');
+  if(ta) ta.value = code;
+  ta?.focus();
+}
+</script>
+{% endblock %}

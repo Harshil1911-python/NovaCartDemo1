@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% block title %}{{ settings.get('site_name','Nova Cart') }} — {{ settings.get('site_tagline','') }}{% endblock %}
+
+{% block content %}
+<!-- Hero Banners -->
+{% if settings.get('section_hero','true') == 'true' %}
+<section class="hero-section">
+  {% if banners %}
+  <div class="hero-slider" id="heroSlider">
+    {% for banner in banners %}
+    <div class="hero-slide {% if loop.first %}active{% endif %}"
+         style="{% if banner.image %}background-image:url('{{ banner.image }}');{% else %}background:linear-gradient(135deg,{{ settings.get('hero_gradient_from','#1A1A2E') }},{{ settings.get('hero_gradient_to','#0F3460') }});{% endif %}">
+      <div class="hero-overlay"></div>
+      <div class="container hero-content">
+        <h1 class="hero-title">{{ banner.title }}</h1>
+        <p class="hero-subtitle">{{ banner.subtitle }}</p>
+        {% if banner.button_text and banner.button_url %}
+        <div class="hero-actions">
+          <a href="{{ banner.button_url }}" class="btn btn-primary btn-lg">{{ banner.button_text }}</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% if banners|length > 1 %}
+    <button class="slider-btn prev" onclick="slideHero(-1)"><i class="fas fa-chevron-left"></i></button>
+    <button class="slider-btn next" onclick="slideHero(1)"><i class="fas fa-chevron-right"></i></button>
+    <div class="slider-dots">{% for b in banners %}<span class="dot {% if loop.first %}active{% endif %}" onclick="goSlide({{ loop.index0 }})"></span>{% endfor %}</div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="hero-default" style="background:linear-gradient(135deg,{{ settings.get('hero_gradient_from','#1A1A2E') }},{{ settings.get('hero_gradient_to','#0F3460') }})">
+    <div class="container hero-content">
+      <div class="hero-badge"><i class="fas fa-bolt"></i> New Arrivals Daily</div>
+      <h1 class="hero-title">Shop Everything<br>You Need</h1>
+      <p class="hero-subtitle">Electronics · Perfumes · Gadgets · Daily Essentials</p>
+      <div class="hero-actions">
+        <a href="/shop" class="btn btn-primary btn-lg">Shop Now <i class="fas fa-arrow-right"></i></a>
+        <a href="/seller/register" class="btn btn-outline btn-lg" style="border-color:#fff;color:#fff">Sell With Us</a>
+      </div>
+      <div class="hero-stats">
+        <div><strong>10K+</strong><span>Products</span></div>
+        <div><strong>500+</strong><span>Sellers</span></div>
+        <div><strong>50K+</strong><span>Customers</span></div>
+      </div>
+    </div>
+    <div class="hero-shapes">
+      <div class="shape shape-1"></div><div class="shape shape-2"></div><div class="shape shape-3"></div>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<!-- Live Visitor Counter -->
+{% if settings.get('show_live_visitors') == 'true' %}
+<div class="live-visitors-bar">
+  <div class="container">
+    <span><i class="fas fa-circle live-dot"></i> <span id="liveVisitors">--</span> people are shopping right now</span>
+    <span class="live-bar-right"><i class="fas fa-shipping-fast"></i> Free shipping on orders above ₹499</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- Categories -->
+{% if settings.get('section_categories','true') == 'true' and categories %}
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Shop by Category</h2>
+      <a href="/shop" class="see-all">View All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="categories-grid">
+      {% for cat in categories %}
+      <a href="/shop/category/{{ cat.slug }}" class="category-card" style="--cat-color:{{ cat.color or '#6C63FF' }}">
+        <div class="cat-icon"><i class="{{ cat.icon or 'fas fa-tag' }}"></i></div>
+        <span class="cat-name">{{ cat.name }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Flash Sale -->
+{% if settings.get('section_flash_sale','true') == 'true' and flash_products %}
+<section class="section flash-sale-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title flash-title">
+        <span class="flash-icon"><i class="fas fa-bolt"></i></span> Flash Sale
+        {% if flash_sale_end %}
+        <span class="countdown" id="flashCountdown" data-end="{{ flash_sale_end }}">Loading…</span>
+        {% endif %}
+      </h2>
+      <a href="/shop?sale=1" class="see-all">All Deals <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="products-grid">
+      {% for product in flash_products %}{% include 'partials/product_card.html' %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Sponsored -->
+{% if sponsored %}
+<section class="section sponsored-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title"><i class="fas fa-star" style="color:#F6AD55"></i> Featured Picks</h2>
+    </div>
+    <div class="products-grid">
+      {% for product in sponsored %}{% set is_sponsored = true %}{% include 'partials/product_card.html' %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Trending -->
+{% if settings.get('section_trending','true') == 'true' and trending %}
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title"><i class="fas fa-fire" style="color:#ED8936"></i> Trending Now</h2>
+      <a href="/shop?sort=popular" class="see-all">See All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="products-grid">
+      {% for product in trending %}{% include 'partials/product_card.html' %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Ad Banner -->
+{% set homepage_ads = get_ads('homepage') %}
+{% if settings.get('section_ads','true') == 'true' and homepage_ads %}
+<section class="section">
+  <div class="container">
+    <div class="ads-grid">
+      {% for ad in homepage_ads[:2] %}
+      <a href="{{ ad.link or '#' }}" class="ad-card" onclick="trackAd({{ ad.id }})">
+        {% if ad.image %}<img src="{{ ad.image }}" alt="{{ ad.title }}" loading="lazy">
+        {% else %}<div class="ad-placeholder"><h3>{{ ad.title }}</h3></div>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Featured -->
+{% if settings.get('section_featured','true') == 'true' and featured %}
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title"><i class="fas fa-medal" style="color:#F6AD55"></i> Featured Products</h2>
+      <a href="/shop?featured=1" class="see-all">See All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="products-grid">
+      {% for product in featured %}{% include 'partials/product_card.html' %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Value Props Banner -->
+<section class="section" style="padding:1.5rem 0">
+  <div class="container">
+    <div class="value-props">
+      {% for icon, title, desc in [
+        ('fas fa-shipping-fast','Free Shipping','On orders above ₹499'),
+        ('fas fa-undo-alt','Easy Returns','7-day hassle-free returns'),
+        ('fas fa-shield-alt','100% Genuine','Verified products only'),
+        ('fas fa-headset','24/7 Support','WhatsApp & email support'),
+        ('fas fa-coins','Loyalty Points','Earn on every purchase'),
+      ] %}
+      <div class="value-prop">
+        <div class="value-icon"><i class="{{ icon }}"></i></div>
+        <div><strong>{{ title }}</strong><p>{{ desc }}</p></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- New Arrivals -->
+{% if settings.get('section_new_arrivals','true') == 'true' and new_arrivals %}
+<section class="section new-arrivals-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title"><i class="fas fa-sparkles" style="color:var(--accent)"></i> New Arrivals</h2>
+      <a href="/shop?sort=newest" class="see-all">View All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="products-grid">
+      {% for product in new_arrivals %}{% include 'partials/product_card.html' %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Testimonials -->
+{% if settings.get('section_testimonials','true') == 'true' and testimonials %}
+<section class="section testimonials-section" style="background:linear-gradient(135deg,rgba(108,99,255,.04),rgba(255,101,132,.04));border-radius:var(--card-radius);padding:3rem 0">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">What Customers Say</h2>
+    </div>
+    <div class="testimonials-grid">
+      {% for t in testimonials %}
+      <div class="testimonial-card">
+        <div class="testimonial-stars">{% for i in range(t.rating|int) %}<i class="fas fa-star"></i>{% endfor %}</div>
+        <p class="testimonial-text">"{{ t.comment }}"</p>
+        <div class="testimonial-author">
+          <div class="t-avatar">{{ t.name[0].upper() }}</div>
+          <div><strong>{{ t.name }}</strong><span>{{ t.location or 'Verified Buyer' }}</span></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Loyalty CTA Banner -->
+{% if current_user %}
+<section class="section" style="padding:1.5rem 0">
+  <div class="container">
+    <div class="loyalty-cta-banner">
+      <div class="loyalty-cta-left">
+        <i class="fas fa-coins loyalty-cta-icon"></i>
+        <div>
+          <h3>You have <span style="color:#F6AD55">{{ loyalty_points }} loyalty points</span></h3>
+          <p>Worth ₹{{ (loyalty_points * 0.5)|int }} in discounts. Keep shopping to earn more!</p>
+        </div>
+      </div>
+      <a href="/marketing/loyalty" class="btn btn-primary">View Points</a>
+    </div>
+  </div>
+</section>
+{% else %}
+<section class="section" style="padding:1.5rem 0">
+  <div class="container">
+    <div class="loyalty-cta-banner">
+      <div class="loyalty-cta-left">
+        <i class="fas fa-gift loyalty-cta-icon"></i>
+        <div>
+          <h3>Join Nova Cart & Earn Loyalty Points!</h3>
+          <p>Get points on every purchase. Refer friends for bonus points.</p>
+        </div>
+      </div>
+      <a href="/auth/register" class="btn btn-primary">Sign Up Free</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Hero slider
+let currentSlide=0;
+const slides=document.querySelectorAll('.hero-slide');
+const dots=document.querySelectorAll('.dot');
+function goSlide(n){
+  slides.forEach(s=>s.classList.remove('active'));
+  dots.forEach(d=>d.classList.remove('active'));
+  currentSlide=(n+slides.length)%slides.length;
+  if(slides[currentSlide])slides[currentSlide].classList.add('active');
+  if(dots[currentSlide])dots[currentSlide].classList.add('active');
+}
+function slideHero(d){goSlide(currentSlide+d);}
+if(slides.length>1)setInterval(()=>slideHero(1),5000);
+
+// Flash sale countdown
+const cd=document.getElementById('flashCountdown');
+if(cd){
+  const end=new Date(cd.dataset.end).getTime();
+  const tick=()=>{
+    const diff=end-Date.now();
+    if(diff<=0){cd.textContent='Ended';return;}
+    const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
+    cd.innerHTML=`<span>${String(h).padStart(2,'0')}</span>:<span>${String(m).padStart(2,'0')}</span>:<span>${String(s).padStart(2,'0')}</span>`;
+  };
+  tick();setInterval(tick,1000);
+}
+
+// Live visitor counter
+const lv=document.getElementById('liveVisitors');
+if(lv){
+  let v=Math.floor(Math.random()*40)+20;
+  lv.textContent=v;
+  setInterval(()=>{v=Math.max(10,v+Math.floor(Math.random()*7)-3);lv.textContent=v;},6000);
+}
+
+function trackAd(id){fetch('/api/ad-click/'+id,{method:'POST'}).catch(()=>{});}
+</script>
+{% endblock %}

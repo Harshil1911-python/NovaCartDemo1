@@ -1,0 +1,429 @@
+{% extends "admin/base.html" %}
+{% block title %}Page Builder{% endblock %}
+{% block page_title %}Visual Page Builder{% endblock %}
+
+{% block extra_css %}
+<style>
+.builder-wrap{display:grid;grid-template-columns:240px 1fr 260px;height:calc(100vh - 70px);overflow:hidden;margin:-1.5rem}
+.builder-palette{background:#fff;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.builder-canvas-area{background:#e8eaf0;overflow-y:auto;padding:1.5rem}
+.builder-props-panel{background:#fff;border-left:1px solid var(--border);overflow-y:auto}
+.palette-section{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:.6rem 1rem .3rem;margin-top:.4rem}
+.block-chip{display:flex;align-items:center;gap:.55rem;margin:.25rem .6rem;padding:.5rem .8rem;border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:500;cursor:grab;background:var(--bg);transition:all .15s;user-select:none}
+.block-chip:hover{border-color:var(--primary);color:var(--primary);background:rgba(108,99,255,.05)}
+.block-chip i{width:16px;text-align:center;color:var(--primary);font-size:.85rem}
+.canvas-page{background:#fff;min-height:700px;max-width:860px;margin:0 auto;box-shadow:0 4px 30px rgba(0,0,0,.12);border-radius:8px;position:relative}
+.cv-block{position:relative;cursor:pointer}
+.cv-block:hover{outline:2px dashed var(--primary)}
+.cv-block.selected{outline:2px solid var(--primary)}
+.cv-controls{display:none;position:absolute;top:-34px;right:0;z-index:10;background:var(--primary);border-radius:8px 8px 0 0;padding:.2rem .4rem;gap:2px}
+.cv-block.selected .cv-controls,.cv-block:hover .cv-controls{display:flex}
+.cv-ctrl{background:none;border:none;color:#fff;cursor:pointer;padding:.2rem .4rem;border-radius:4px;font-size:.78rem}
+.cv-ctrl:hover{background:rgba(255,255,255,.2)}
+.drop-zone{border:2px dashed #CBD5E0;border-radius:8px;padding:2.5rem;text-align:center;color:#A0AEC0;font-size:.88rem;margin:.5rem}
+.drop-zone.over{border-color:var(--primary);background:rgba(108,99,255,.05);color:var(--primary)}
+.builder-topbar{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.title-inp{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:.42rem .8rem;font-size:.9rem;font-weight:600}
+.slug-inp{max-width:170px;border:1.5px solid var(--border);border-radius:8px;padding:.42rem .8rem;font-size:.82rem;color:var(--text-muted)}
+.title-inp:focus,.slug-inp:focus{outline:none;border-color:var(--primary)}
+.props-title{font-size:.8rem;font-weight:700;padding:.75rem 1rem .4rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);margin-bottom:.5rem}
+.prop-row{padding:.5rem 1rem}
+.prop-label{font-size:.78rem;font-weight:600;color:var(--text);display:block;margin-bottom:.3rem}
+.prop-inp{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:.38rem .6rem;font-size:.82rem;background:var(--white);color:var(--text)}
+.prop-inp:focus{outline:none;border-color:var(--primary)}
+.prop-color-row{display:flex;gap:.4rem;align-items:center}
+.prop-color-row input[type=color]{width:36px;height:30px;padding:2px;border:1.5px solid var(--border);border-radius:6px;cursor:pointer}
+.prop-check{display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem}
+.dim-hint{font-size:.72rem;color:var(--text-muted);margin-top:.2rem;padding:.3rem .5rem;background:rgba(108,99,255,.06);border-radius:4px}
+
+/* Photo search */
+.photo-search-wrap{padding:.75rem 1rem;border-top:1px solid var(--border)}
+.photo-search-inp{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.38rem .6rem .38rem 2rem;font-size:.82rem;background:var(--bg)}
+.photo-search-inp:focus{outline:none;border-color:var(--primary)}
+.photo-search-bar{position:relative}
+.photo-search-bar i{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.8rem}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.3rem;padding:.5rem 1rem;max-height:200px;overflow-y:auto}
+.photo-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;cursor:pointer;transition:transform .2s;border:2px solid transparent}
+.photo-thumb:hover{transform:scale(1.05);border-color:var(--primary)}
+.photo-attr{font-size:.68rem;color:var(--text-muted);padding:0 1rem .5rem;text-align:center}
+
+@media(max-width:1100px){.builder-wrap{grid-template-columns:200px 1fr 220px}}
+@media(max-width:800px){.builder-wrap{grid-template-columns:1fr};.builder-palette,.builder-props-panel{display:none}}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Topbar -->
+<div class="builder-topbar">
+  <a href="/x-admin-9f3k2/page-builder" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i></a>
+  <input type="text" id="pgTitle" class="title-inp" placeholder="Page Title" value="{{ page.title if page else 'New Page' }}">
+  <input type="text" id="pgSlug" class="slug-inp" placeholder="url-slug" value="{{ page.slug if page else '' }}">
+  <label style="font-size:.82rem;display:flex;align-items:center;gap:.3rem;white-space:nowrap">
+    <input type="checkbox" id="pgPublished" {% if not page or page.is_published %}checked{% endif %}> Live
+  </label>
+  <button class="btn btn-outline btn-sm" onclick="previewPage()"><i class="fas fa-eye"></i></button>
+  <button class="btn btn-primary btn-sm" onclick="savePage()"><i class="fas fa-save"></i> Save</button>
+  <span id="saveMsg" style="font-size:.78rem;color:var(--text-muted)"></span>
+</div>
+
+<div class="builder-wrap">
+  <!-- Palette -->
+  <div class="builder-palette">
+    <div class="palette-section">Text</div>
+    {% for t,i,l in [('heading','fa-heading','Heading'),('paragraph','fa-align-left','Paragraph'),('richtext','fa-code','Rich HTML'),('quote','fa-quote-left','Quote'),('divider','fa-minus','Divider')] %}
+    <div class="block-chip" draggable="true" data-type="{{ t }}"><i class="fas {{ i }}"></i>{{ l }}</div>
+    {% endfor %}
+
+    <div class="palette-section">Media</div>
+    {% for t,i,l in [('image','fa-image','Image'),('video','fa-play-circle','Video'),('gallery','fa-images','Gallery')] %}
+    <div class="block-chip" draggable="true" data-type="{{ t }}"><i class="fas {{ i }}"></i>{{ l }}</div>
+    {% endfor %}
+
+    <div class="palette-section">Layout</div>
+    {% for t,i,l in [('columns2','fa-columns','2 Columns'),('columns3','fa-th','3 Columns'),('spacer','fa-arrows-alt-v','Spacer'),('divider','fa-minus','Divider')] %}
+    <div class="block-chip" draggable="true" data-type="{{ t }}"><i class="fas {{ i }}"></i>{{ l }}</div>
+    {% endfor %}
+
+    <div class="palette-section">Sections</div>
+    {% for t,i,l in [('hero','fa-star','Hero Banner'),('cta','fa-bullhorn','CTA Section'),('cta_btn','fa-hand-pointer','CTA Button'),('feature_row','fa-list-ul','Feature Row'),('testimonial','fa-comment','Testimonial'),('faq','fa-question-circle','FAQ'),('pricing_card','fa-tag','Pricing Card'),('countdown','fa-clock','Countdown')] %}
+    <div class="block-chip" draggable="true" data-type="{{ t }}"><i class="fas {{ i }}"></i>{{ l }}</div>
+    {% endfor %}
+
+    <div class="palette-section">Shop</div>
+    {% for t,i,l in [('product_grid','fa-th-large','Product Grid'),('banner_ad','fa-ad','Ad Block')] %}
+    <div class="block-chip" draggable="true" data-type="{{ t }}"><i class="fas {{ i }}"></i>{{ l }}</div>
+    {% endfor %}
+
+    <!-- Photo Search -->
+    <div class="palette-section">Browse Photos</div>
+    <div class="photo-search-wrap">
+      <div class="photo-search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" class="photo-search-inp" id="photoSearch" placeholder="Search Unsplash...">
+      </div>
+    </div>
+    <div class="photo-grid" id="photoGrid"></div>
+    <p class="photo-attr" id="photoAttr"></p>
+  </div>
+
+  <!-- Canvas -->
+  <div class="builder-canvas-area">
+    <div class="canvas-page" id="canvas" ondragover="ev_over(event)" ondrop="ev_drop(event)">
+      <div class="drop-zone" id="emptyHint"><i class="fas fa-mouse-pointer" style="font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.4"></i>Drag blocks from the left panel here</div>
+    </div>
+  </div>
+
+  <!-- Props -->
+  <div class="builder-props-panel">
+    <div class="props-title"><i class="fas fa-sliders-h"></i> Properties</div>
+    <div id="propFields"><p style="padding:1rem;font-size:.82rem;color:var(--text-muted)">Click a block to edit its properties</p></div>
+  </div>
+</div>
+
+<input type="hidden" id="pgId" value="{{ page.id if page else '' }}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token() }}';
+let blocks = [], sel = null, dragType = null;
+
+{% if page and page.content %}
+try {
+  const raw = {{ page.content | tojson }};
+  blocks = raw.startsWith('[') ? JSON.parse(raw) : [{id:uid(),type:'richtext',data:{html:raw}}];
+} catch(e) { blocks = []; }
+{% endif %}
+
+function uid(){ return 'b'+Math.random().toString(36).substr(2,9); }
+
+// ── Defaults ────────────────────────────────────────────────────
+const DEF = {
+  heading:   {text:'Your Heading Here',level:'h2',align:'left',color:'#2D3748',size:'2rem',bold:true},
+  paragraph: {text:'Your paragraph text goes here.',align:'left',color:'#718096',size:'1rem'},
+  richtext:  {html:'<p>Write <strong>rich content</strong> here.</p>'},
+  quote:     {text:'An inspiring quote.',author:'Author Name',color:'#6C63FF'},
+  divider:   {color:'#E2E8F0',margin:'2rem'},
+  image:     {src:'',alt:'Image',width:'100%',align:'center',caption:'',link:''},
+  video:     {url:'',height:'360px'},
+  gallery:   {images:'',columns:'3'},
+  hero:      {title:'Big Bold Headline',subtitle:'Supporting subtitle text here',btn_text:'Shop Now',btn_url:'/shop',btn2_text:'',btn2_url:'',bg_color:'#6C63FF',text_color:'#ffffff',align:'center',padding:'5rem 2rem',bg_image:''},
+  columns2:  {col1:'<h3>Column 1</h3><p>Content here</p>',col2:'<h3>Column 2</h3><p>Content here</p>',gap:'2rem'},
+  columns3:  {col1:'<h3>Col 1</h3>',col2:'<h3>Col 2</h3>',col3:'<h3>Col 3</h3>'},
+  cta:       {title:'Ready to Get Started?',subtitle:'Join thousands of happy customers.',btn_text:'Shop Now',btn_url:'/shop',btn_color:'#6C63FF',bg_color:'#F0EEFF',text_color:'#1A1A2E',btn2_text:'',btn2_url:''},
+  cta_btn:   {text:'Click Here',url:'/shop',color:'#6C63FF',text_color:'#ffffff',size:'lg',align:'center',radius:'8px',full_width:false},
+  feature_row:{icon:'fas fa-star',title:'Feature Title',text:'Brief description here.',icon_color:'#6C63FF'},
+  testimonial:{text:'Great product! Highly recommend.',author:'Happy Customer',role:'Verified Buyer',rating:5,color:'#6C63FF'},
+  faq:       {question:'Frequently Asked Question?',answer:'Detailed answer here.',open:false},
+  pricing_card:{name:'Basic Plan',price:'₹999',period:'/month',features:'Feature 1\nFeature 2\nFeature 3',btn_text:'Get Started',btn_url:'/shop',color:'#6C63FF',popular:false},
+  countdown: {end_date:'',title:'Offer Ends In',color:'#FF6584'},
+  product_grid:{title:'Featured Products',category_slug:'',limit:4},
+  banner_ad: {placement:'homepage',title:'Ad Block'},
+  spacer:    {height:'2rem'},
+};
+
+// ── Render ───────────────────────────────────────────────────────
+function render(b){
+  const d=b.data||{};
+  switch(b.type){
+    case 'heading':{const t=d.level||'h2';return`<${t} style="text-align:${d.align||'left'};color:${d.color||'#2D3748'};font-size:${d.size||'2rem'};font-weight:${d.bold?800:400};padding:1rem 1.5rem;margin:0">${d.text||''}</${t}>`;}
+    case 'paragraph':return`<p style="text-align:${d.align||'left'};color:${d.color||'#718096'};font-size:${d.size||'1rem'};line-height:1.8;padding:.5rem 1.5rem;margin:0">${d.text||''}</p>`;
+    case 'richtext':return`<div style="padding:1rem 1.5rem;line-height:1.8">${d.html||''}</div>`;
+    case 'quote':return`<blockquote style="border-left:4px solid ${d.color||'#6C63FF'};padding:1rem 1.5rem;margin:1rem 1.5rem;background:${d.color||'#6C63FF'}11;border-radius:0 8px 8px 0"><p style="font-style:italic;font-size:1.1rem;margin:0 0 .5rem">"${d.text||''}"</p><cite style="font-size:.85rem;font-weight:600;color:${d.color||'#6C63FF'}">— ${d.author||''}</cite></blockquote>`;
+    case 'divider':return`<hr style="border:none;border-top:2px solid ${d.color||'#E2E8F0'};margin:${d.margin||'2rem'} 1.5rem">`;
+    case 'image':{const im=d.src?`<img src="${d.src}" alt="${d.alt||''}" style="max-width:${d.width||'100%'};border-radius:8px">`:'<div style="background:#F0F2F8;height:180px;display:flex;align-items:center;justify-content:center;color:#A0AEC0;border-radius:8px;flex-direction:column;gap:.5rem"><i class="fas fa-image" style="font-size:2.5rem"></i><span style="font-size:.85rem">No image set</span></div>';const cap=d.caption?`<p style="font-size:.82rem;color:#718096;margin-top:.4rem;text-align:center">${d.caption}</p>`:'';return`<div style="text-align:${d.align||'center'};padding:1rem 1.5rem">${d.link?`<a href="${d.link}">${im}</a>`:im}${cap}</div>`;}
+    case 'video':return`<div style="padding:1rem 1.5rem"><div style="position:relative;padding-bottom:56.25%;height:0;border-radius:8px;overflow:hidden;background:#000">${d.url?`<iframe src="${d.url}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen></iframe>`:'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem"><i class=\'fas fa-play-circle\' style=\'font-size:3rem\'></i></div>'}</div></div>`;
+    case 'hero':{const bg=d.bg_image?`url(${d.bg_image}) center/cover`:d.bg_color||'#6C63FF';const b1=d.btn_text?`<a href="${d.btn_url||'#'}" style="background:#fff;color:${d.bg_color||'#6C63FF'};padding:.7rem 1.75rem;border-radius:8px;font-weight:700;text-decoration:none;display:inline-block">${d.btn_text}</a>`:'';const b2=d.btn2_text?`<a href="${d.btn2_url||'#'}" style="background:transparent;color:#fff;border:2px solid #fff;padding:.7rem 1.75rem;border-radius:8px;font-weight:700;text-decoration:none;display:inline-block">${d.btn2_text}</a>`:'';return`<div style="background:${bg};color:${d.text_color||'#fff'};text-align:${d.align||'center'};padding:${d.padding||'5rem 2rem'};position:relative"><h1 style="font-size:2.5rem;font-weight:800;margin-bottom:1rem">${d.title||''}</h1><p style="font-size:1.1rem;opacity:.9;margin-bottom:2rem">${d.subtitle||''}</p><div style="display:flex;gap:1rem;justify-content:${d.align==='left'?'flex-start':'center'};flex-wrap:wrap">${b1}${b2}</div></div>`;}
+    case 'cta':{const b1=d.btn_text?`<a href="${d.btn_url||'#'}" style="background:${d.btn_color||'#6C63FF'};color:#fff;padding:.7rem 1.75rem;border-radius:8px;font-weight:700;text-decoration:none;display:inline-block">${d.btn_text}</a>`:'';const b2=d.btn2_text?`<a href="${d.btn2_url||'#'}" style="background:transparent;color:${d.btn_color||'#6C63FF'};border:2px solid ${d.btn_color||'#6C63FF'};padding:.7rem 1.75rem;border-radius:8px;font-weight:700;text-decoration:none;display:inline-block">${d.btn2_text}</a>`:'';return`<div style="background:${d.bg_color||'#F0EEFF'};text-align:center;padding:3rem 2rem;border-radius:12px;margin:1rem 1.5rem"><h2 style="color:${d.text_color||'#1A1A2E'};font-size:1.8rem;font-weight:800;margin-bottom:.5rem">${d.title||''}</h2><p style="color:${d.text_color||'#1A1A2E'};opacity:.75;margin-bottom:1.5rem">${d.subtitle||''}</p><div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">${b1}${b2}</div></div>`;}
+    case 'cta_btn':{const sz={sm:'.4rem 1rem',md:'.65rem 1.5rem',lg:'.85rem 2rem'};const p=sz[d.size||'lg']||'.85rem 2rem';const w=d.full_width?'width:100%;text-align:center;display:block':'display:inline-block';return`<div style="text-align:${d.align||'center'};padding:.75rem 1.5rem"><a href="${d.url||'#'}" style="background:${d.color||'#6C63FF'};color:${d.text_color||'#fff'};padding:${p};border-radius:${d.radius||'8px'};font-weight:700;text-decoration:none;${w}">${d.text||'Button'}</a></div>`;}
+    case 'columns2':return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:${d.gap||'2rem'};padding:1.5rem"><div>${d.col1||''}</div><div>${d.col2||''}</div></div>`;
+    case 'columns3':return`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;padding:1.5rem"><div>${d.col1||''}</div><div>${d.col2||''}</div><div>${d.col3||''}</div></div>`;
+    case 'feature_row':return`<div style="display:flex;align-items:flex-start;gap:1.25rem;padding:1rem 1.5rem"><div style="width:52px;height:52px;border-radius:12px;background:${d.icon_color||'#6C63FF'}22;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="${d.icon||'fas fa-star'}" style="color:${d.icon_color||'#6C63FF'};font-size:1.3rem"></i></div><div><strong style="font-size:1rem">${d.title||''}</strong><p style="color:#718096;margin-top:.25rem;line-height:1.6">${d.text||''}</p></div></div>`;
+    case 'testimonial':{const st='⭐'.repeat(+d.rating||5);return`<div style="background:#F8F9FF;border-radius:12px;padding:1.5rem;margin:1rem 1.5rem;border-left:4px solid ${d.color||'#6C63FF'}"><div style="margin-bottom:.75rem;font-size:1.1rem">${st}</div><p style="font-style:italic;line-height:1.7;margin-bottom:1rem">"${d.text||''}"</p><strong>${d.author||''}</strong><span style="color:#718096;font-size:.85rem"> — ${d.role||'Verified Buyer'}</span></div>`;}
+    case 'faq':return`<details style="border:1px solid #E2E8F0;border-radius:8px;margin:.5rem 1.5rem;overflow:hidden" ${d.open?'open':''}><summary style="padding:1rem;font-weight:600;cursor:pointer;background:#F8F9FA">${d.question||''}</summary><div style="padding:1rem;line-height:1.7;color:#718096">${d.answer||''}</div></details>`;
+    case 'pricing_card':{const pop=d.popular?`<div style="background:${d.color||'#6C63FF'};color:#fff;text-align:center;padding:.4rem;font-size:.78rem;font-weight:700">★ MOST POPULAR</div>`:'';const feats=(d.features||'').split('\n').filter(f=>f.trim()).map(f=>`<li style="padding:.3rem 0;border-bottom:1px solid #f0f0f0;font-size:.88rem"><i class="fas fa-check" style="color:${d.color||'#6C63FF'};margin-right:.5rem"></i>${f}</li>`).join('');return`<div style="max-width:300px;margin:1.5rem auto;border:2px solid ${d.popular?d.color||'#6C63FF':'#E2E8F0'};border-radius:16px;overflow:hidden">${pop}<div style="padding:2rem;text-align:center"><h3 style="font-size:1.1rem;font-weight:700">${d.name||'Plan'}</h3><div style="font-size:2.2rem;font-weight:800;color:${d.color||'#6C63FF'};margin:.5rem 0">${d.price||'₹0'}<span style="font-size:.9rem;color:#718096">${d.period||'/mo'}</span></div><ul style="list-style:none;text-align:left;margin:1rem 0;padding:0">${feats}</ul><a href="${d.btn_url||'#'}" style="background:${d.color||'#6C63FF'};color:#fff;padding:.7rem 1.5rem;border-radius:8px;font-weight:700;text-decoration:none;display:block;text-align:center">${d.btn_text||'Get Started'}</a></div></div>`;}
+    case 'countdown':return`<div style="text-align:center;padding:1.5rem;background:#FFF5F8;border-radius:12px;margin:1rem 1.5rem"><p style="font-weight:700;margin-bottom:.75rem">${d.title||'Offer Ends In'}</p><div style="display:flex;gap:.75rem;justify-content:center;font-size:1.6rem;font-weight:800;color:${d.color||'#FF6584'}">Set end date →</div></div>`;
+    case 'product_grid':return`<div style="padding:1rem 1.5rem"><h3 style="margin-bottom:.75rem">${d.title||'Products'}</h3><div style="background:#F0F2F8;border-radius:8px;padding:1.5rem;text-align:center;color:#718096"><i class="fas fa-th-large" style="font-size:2rem;margin-bottom:.5rem;display:block"></i>Shows ${d.limit||4} live products${d.category_slug?' from category: '+d.category_slug:''}</div></div>`;
+    case 'banner_ad':return`<div style="padding:.5rem 1.5rem"><div style="background:linear-gradient(135deg,#6C63FF22,#FF658422);border:2px dashed #6C63FF66;border-radius:8px;padding:1.5rem;text-align:center;color:#6C63FF"><i class="fas fa-ad" style="font-size:2rem;margin-bottom:.5rem;display:block"></i><strong>Ad Placement: ${d.placement||'homepage'}</strong><p style="font-size:.82rem;margin-top:.25rem;color:#718096">Live ads for this placement will show here</p></div></div>`;
+    case 'spacer':return`<div style="height:${d.height||'2rem'}"></div>`;
+    case 'gallery':{const imgs=(d.images||'').split('\n').filter(u=>u.trim());if(!imgs.length)return`<div style="padding:1rem 1.5rem;text-align:center;color:#A0AEC0;background:#F8F9FA;border-radius:8px;margin:1rem 1.5rem"><i class="fas fa-images" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>Gallery — add image URLs below</div>`;return`<div style="display:grid;grid-template-columns:repeat(${d.columns||3},1fr);gap:.5rem;padding:1rem 1.5rem">${imgs.map(u=>`<img src="${u}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px">`).join('')}</div>`;}
+    default:return`<div style="padding:1rem;background:#F0F2F8;margin:.5rem 1.5rem;border-radius:8px;text-align:center;color:#718096">${b.type}</div>`;
+  }
+}
+
+// ── Properties ───────────────────────────────────────────────────
+const DIM_HINTS = {
+  hero: '📐 Recommended: 1200×500px (landscape)',
+  image: '📐 Recommended: 800×600px (4:3) or 1200×628px (OG)',
+  gallery: '📐 Square images work best: 600×600px',
+  banner_ad: '📐 Horizontal: 728×90px or 300×250px',
+  video: '📐 Paste YouTube/Vimeo embed URL (https://www.youtube.com/embed/ID)',
+};
+
+function buildProps(b){
+  const d=b.data||{};
+  const t=b.type;
+  const f=(key,lbl,val,type='text',extra='')=>
+    `<div class="prop-row"><label class="prop-label">${lbl}</label><input type="${type}" class="prop-inp" data-key="${key}" value="${String(val||'').replace(/"/g,'&quot;')}" oninput="upd(this)" ${extra}></div>`;
+  const ta=(key,lbl,val)=>
+    `<div class="prop-row"><label class="prop-label">${lbl}</label><textarea class="prop-inp" data-key="${key}" rows="3" oninput="upd(this)" style="resize:vertical">${val||''}</textarea></div>`;
+  const cl=(key,lbl,val)=>
+    `<div class="prop-row"><label class="prop-label">${lbl}</label><div class="prop-color-row"><input type="color" class="prop-inp" data-key="${key}" value="${val||'#6C63FF'}" oninput="upd(this);syncColor(this)" style="width:36px;height:30px"><input type="text" class="prop-inp" data-key="${key}" value="${val||'#6C63FF'}" oninput="upd(this);syncColorTxt(this)" style="flex:1"></div></div>`;
+  const sel=(key,lbl,val,opts)=>
+    `<div class="prop-row"><label class="prop-label">${lbl}</label><select class="prop-inp" data-key="${key}" onchange="upd(this)">${opts.map(o=>`<option value="${o[0]}" ${val===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>`;
+  const chk=(key,lbl,val)=>
+    `<div class="prop-row"><label class="prop-check"><input type="checkbox" data-key="${key}" ${val?'checked':''} onchange="updChk(this)"> ${lbl}</label></div>`;
+  const dim=DIM_HINTS[t]?`<div class="dim-hint">${DIM_HINTS[t]}</div>`:'';
+
+  const photoBtn=(key)=>
+    `<div class="prop-row"><button type="button" class="btn btn-sm btn-outline" style="width:100%" onclick="openPhotoSearch('${key}')"><i class="fas fa-photo-video"></i> Browse Unsplash Photos</button>${dim}</div>`;
+
+  switch(t){
+    case 'heading':return f('text','Heading Text',d.text)+sel('level','Tag',d.level||'h2',[['h1','H1 — Main Title'],['h2','H2 — Section Title'],['h3','H3 — Sub Title'],['h4','H4 — Small Title']])+sel('align','Alignment',d.align||'left',[['left','Left'],['center','Center'],['right','Right']])+cl('color','Color',d.color||'#2D3748')+f('size','Font Size',d.size||'2rem')+chk('bold','Bold',d.bold!==false);
+    case 'paragraph':return ta('text','Paragraph Text',d.text)+sel('align','Alignment',d.align||'left',[['left','Left'],['center','Center'],['right','Right']])+cl('color','Color',d.color||'#718096')+f('size','Font Size',d.size||'1rem');
+    case 'richtext':return ta('html','HTML Content',d.html)+'<div class="dim-hint">💡 Supports full HTML: &lt;strong&gt;, &lt;em&gt;, &lt;ul&gt;, &lt;a&gt;, etc.</div>';
+    case 'quote':return ta('text','Quote Text',d.text)+f('author','Author Name',d.author)+cl('color','Accent Color',d.color||'#6C63FF');
+    case 'divider':return cl('color','Line Color',d.color||'#E2E8F0')+f('margin','Vertical Margin',d.margin||'2rem');
+    case 'image':return f('src','Image URL',d.src)+photoBtn('src')+f('alt','Alt Text',d.alt)+f('link','Click Link (optional)',d.link)+f('width','Width',d.width||'100%')+sel('align','Alignment',d.align||'center',[['left','Left'],['center','Center'],['right','Right']])+f('caption','Caption',d.caption);
+    case 'video':return f('url','Embed URL',d.url)+f('height','Height',d.height||'360px')+'<div class="dim-hint">📐 Use YouTube embed: youtube.com/embed/VIDEO_ID</div>';
+    case 'gallery':return ta('images','Image URLs (one per line)',d.images)+f('columns','Columns',d.columns||'3','number')+photoBtn('images')+'<div class="dim-hint">📐 Square images 600×600px work best</div>';
+    case 'hero':return f('title','Hero Title',d.title)+f('subtitle','Subtitle',d.subtitle)+cl('bg_color','Background Color',d.bg_color||'#6C63FF')+cl('text_color','Text Color',d.text_color||'#ffffff')+f('bg_image','Background Image URL',d.bg_image)+photoBtn('bg_image')+sel('align','Text Align',d.align||'center',[['left','Left'],['center','Center']])+f('padding','Padding',d.padding||'5rem 2rem')+f('btn_text','Button 1 Text',d.btn_text)+f('btn_url','Button 1 URL',d.btn_url||'/shop')+f('btn2_text','Button 2 Text',d.btn2_text)+f('btn2_url','Button 2 URL',d.btn2_url);
+    case 'cta':return f('title','Title',d.title)+f('subtitle','Subtitle',d.subtitle)+cl('bg_color','Background',d.bg_color||'#F0EEFF')+cl('text_color','Text Color',d.text_color||'#1A1A2E')+cl('btn_color','Button Color',d.btn_color||'#6C63FF')+f('btn_text','Button 1 Text',d.btn_text)+f('btn_url','Button 1 URL',d.btn_url||'/shop')+f('btn2_text','Button 2 Text (optional)',d.btn2_text)+f('btn2_url','Button 2 URL',d.btn2_url);
+    case 'cta_btn':return f('text','Button Text',d.text)+f('url','URL',d.url||'/shop')+cl('color','Button Color',d.color||'#6C63FF')+cl('text_color','Text Color',d.text_color||'#ffffff')+sel('size','Size',d.size||'lg',[['sm','Small'],['md','Medium'],['lg','Large']])+sel('align','Alignment',d.align||'center',[['left','Left'],['center','Center'],['right','Right']])+f('radius','Border Radius',d.radius||'8px')+chk('full_width','Full Width',d.full_width);
+    case 'feature_row':return f('icon','Icon Class (Font Awesome)',d.icon||'fas fa-star')+'<div class="dim-hint">💡 Browse icons: fontawesome.com/icons</div>'+cl('icon_color','Icon Color',d.icon_color||'#6C63FF')+f('title','Title',d.title)+ta('text','Description',d.text);
+    case 'testimonial':return ta('text','Review Text',d.text)+f('author','Customer Name',d.author)+f('role','Role / Title',d.role||'Verified Buyer')+f('rating','Rating (1-5)',d.rating||5,'number','min="1" max="5"')+cl('color','Accent Color',d.color||'#6C63FF');
+    case 'faq':return f('question','Question',d.question)+ta('answer','Answer',d.answer)+chk('open','Open by default',d.open);
+    case 'pricing_card':return f('name','Plan Name',d.name)+f('price','Price',d.price)+f('period','Period',d.period||'/month')+ta('features','Features (one per line)',d.features)+cl('color','Accent Color',d.color||'#6C63FF')+f('btn_text','Button Text',d.btn_text)+f('btn_url','Button URL',d.btn_url)+chk('popular','Mark as Popular',d.popular);
+    case 'countdown':return f('title','Countdown Title',d.title)+f('end_date','End Date & Time',d.end_date,'datetime-local')+cl('color','Color',d.color||'#FF6584');
+    case 'product_grid':return f('title','Section Title',d.title)+f('category_slug','Category Slug (optional)',d.category_slug)+f('limit','Number of Products',d.limit||4,'number');
+    case 'banner_ad':return sel('placement','Ad Placement',d.placement||'homepage',[['homepage','Homepage'],['sidebar','Sidebar'],['category','Category Pages'],['product_top','Product Page — Top'],['product_bottom','Product Page — Bottom'],['cart','Cart Page'],['popup','Popup']]);
+    case 'spacer':return f('height','Height',d.height||'2rem')+'<div class="dim-hint">📐 Examples: 1rem, 2rem, 48px</div>';
+    case 'columns2':return ta('col1','Column 1 (HTML)',d.col1)+ta('col2','Column 2 (HTML)',d.col2)+f('gap','Gap',d.gap||'2rem');
+    case 'columns3':return ta('col1','Column 1 (HTML)',d.col1)+ta('col2','Column 2 (HTML)',d.col2)+ta('col3','Column 3 (HTML)',d.col3);
+    default:return '<p style="padding:1rem;color:var(--text-muted)">No properties.</p>';
+  }
+}
+
+// ── Update prop ────────────────────────────────────────────────
+function upd(el){
+  if(!sel)return;
+  const b=blocks.find(x=>x.id===sel);
+  if(!b)return;
+  b.data=b.data||{};
+  b.data[el.dataset.key]=el.value;
+  redrawBlock(b);
+}
+function updChk(el){
+  if(!sel)return;
+  const b=blocks.find(x=>x.id===sel);
+  if(!b)return;
+  b.data=b.data||{};
+  b.data[el.dataset.key]=el.checked;
+  redrawBlock(b);
+}
+function syncColor(el){document.querySelectorAll(`[data-key="${el.dataset.key}"]`).forEach(x=>{if(x!==el&&x.type==='text')x.value=el.value;});}
+function syncColorTxt(el){document.querySelectorAll(`[data-key="${el.dataset.key}"]`).forEach(x=>{if(x!==el&&x.type==='color'&&/^#[0-9A-Fa-f]{6}$/.test(el.value))x.value=el.value;});}
+
+function redrawBlock(b){
+  const w=document.querySelector(`.cv-block[data-id="${b.id}"]`);
+  if(!w)return;
+  const ctrl=w.querySelector('.cv-controls').outerHTML;
+  w.innerHTML=ctrl+render(b);
+}
+
+// ── Canvas ─────────────────────────────────────────────────────
+function drawCanvas(){
+  const canvas=document.getElementById('canvas');
+  canvas.querySelectorAll('.cv-block').forEach(e=>e.remove());
+  document.getElementById('emptyHint').style.display=blocks.length?'none':'block';
+  blocks.forEach(b=>{
+    const w=document.createElement('div');
+    w.className='cv-block'+(sel===b.id?' selected':'');
+    w.dataset.id=b.id;
+    w.innerHTML=`<div class="cv-controls">
+      <button class="cv-ctrl" onclick="mv('${b.id}',-1)" title="Up"><i class="fas fa-chevron-up"></i></button>
+      <button class="cv-ctrl" onclick="mv('${b.id}',1)" title="Down"><i class="fas fa-chevron-down"></i></button>
+      <button class="cv-ctrl" onclick="dup('${b.id}')" title="Duplicate"><i class="fas fa-copy"></i></button>
+      <button class="cv-ctrl" onclick="del('${b.id}')" title="Delete" style="color:#FC8181"><i class="fas fa-trash"></i></button>
+    </div>`+render(b);
+    w.addEventListener('click',e=>{e.stopPropagation();selectBlock(b.id);});
+    canvas.appendChild(w);
+  });
+}
+
+function selectBlock(id){
+  sel=id;
+  drawCanvas();
+  const b=blocks.find(x=>x.id===id);
+  if(b) document.getElementById('propFields').innerHTML=buildProps(b);
+}
+
+document.getElementById('canvas').addEventListener('click',()=>{
+  sel=null; drawCanvas();
+  document.getElementById('propFields').innerHTML='<p style="padding:1rem;font-size:.82rem;color:var(--text-muted)">Click a block to edit</p>';
+});
+
+function mv(id,d){
+  const i=blocks.findIndex(b=>b.id===id);
+  const n=i+d;
+  if(n<0||n>=blocks.length)return;
+  [blocks[i],blocks[n]]=[blocks[n],blocks[i]];
+  drawCanvas();
+}
+function dup(id){
+  const b=blocks.find(x=>x.id===id);
+  if(!b)return;
+  const nb={id:uid(),type:b.type,data:JSON.parse(JSON.stringify(b.data||{}))};
+  blocks.splice(blocks.findIndex(x=>x.id===id)+1,0,nb);
+  drawCanvas();
+}
+function del(id){
+  blocks=blocks.filter(x=>x.id!==id);
+  if(sel===id)sel=null;
+  drawCanvas();
+}
+
+// ── Drag & Drop ────────────────────────────────────────────────
+document.querySelectorAll('.block-chip').forEach(c=>{
+  c.addEventListener('dragstart',e=>{dragType=c.dataset.type;e.dataTransfer.effectAllowed='copy';});
+});
+function ev_over(e){e.preventDefault();document.getElementById('emptyHint').classList.add('over');}
+function ev_drop(e){
+  e.preventDefault();
+  document.getElementById('emptyHint').classList.remove('over');
+  if(!dragType)return;
+  const nb={id:uid(),type:dragType,data:JSON.parse(JSON.stringify(DEF[dragType]||{}))};
+  blocks.push(nb);
+  dragType=null;
+  drawCanvas();
+  selectBlock(nb.id);
+}
+
+// ── Photo Search ───────────────────────────────────────────────
+let currentPhotoKey = null;
+
+document.getElementById('photoSearch').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){e.preventDefault();searchPhotos(this.value);}
+});
+document.getElementById('photoSearch').addEventListener('input',function(){
+  if(this.value.length<3)return;
+  clearTimeout(this._t);
+  this._t=setTimeout(()=>searchPhotos(this.value),600);
+});
+
+function searchPhotos(q){
+  if(!q.trim())return;
+  const grid=document.getElementById('photoGrid');
+  grid.innerHTML='<div style="grid-column:span 3;text-align:center;color:var(--text-muted);padding:.5rem"><i class="fas fa-spinner fa-spin"></i></div>';
+  // Use Unsplash Source (no API key needed for source URLs)
+  const keywords=q.trim().split(' ').join(',');
+  const photos=[];
+  for(let i=0;i<9;i++){
+    photos.push(`https://source.unsplash.com/300x200/?${encodeURIComponent(q)}&sig=${i}`);
+  }
+  grid.innerHTML=photos.map(url=>
+    `<img src="${url}" class="photo-thumb" loading="lazy" onclick="usePhoto('${url}')" title="Click to use this photo">`
+  ).join('');
+  document.getElementById('photoAttr').textContent='Photos by Unsplash — click to insert';
+}
+
+function openPhotoSearch(key){
+  currentPhotoKey=key;
+  document.getElementById('photoSearch').focus();
+  document.getElementById('photoSearch').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function usePhoto(url){
+  if(!sel||!currentPhotoKey)return;
+  const b=blocks.find(x=>x.id===sel);
+  if(!b)return;
+  b.data=b.data||{};
+  if(currentPhotoKey==='images'){
+    // For gallery - append to existing
+    const existing=(b.data.images||'').trim();
+    b.data.images=existing?existing+'\n'+url:url;
+  } else {
+    b.data[currentPhotoKey]=url;
+  }
+  // Update input field in props
+  const inp=document.querySelector(`[data-key="${currentPhotoKey}"]`);
+  if(inp)inp.value=b.data[currentPhotoKey];
+  redrawBlock(b);
+  document.getElementById('photoGrid').querySelectorAll('.photo-thumb').forEach(t=>t.style.outline='none');
+  event.target.style.outline='2px solid var(--primary)';
+}
+
+// ── Save & Preview ─────────────────────────────────────────────
+function savePage(){
+  const title=document.getElementById('pgTitle').value.trim()||'Untitled';
+  let slug=document.getElementById('pgSlug').value.trim()||title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const pub=document.getElementById('pgPublished').checked;
+  const id=document.getElementById('pgId').value;
+  const msg=document.getElementById('saveMsg');
+  msg.textContent='Saving…';
+  fetch('/x-admin-9f3k2/page-builder/save',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body:JSON.stringify({id:id||null,title,slug,content:JSON.stringify(blocks),is_published:pub,meta_title:title})
+  }).then(r=>r.json()).then(d=>{
+    if(d.status==='ok'){
+      document.getElementById('pgId').value=d.id;
+      document.getElementById('pgSlug').value=d.slug;
+      msg.textContent='✅ Saved!';
+      setTimeout(()=>msg.textContent='',3000);
+    }
+  }).catch(()=>msg.textContent='❌ Error');
+}
+
+function previewPage(){
+  const slug=document.getElementById('pgSlug').value.trim();
+  if(slug)window.open('/page/'+slug,'_blank');
+  else alert('Save first to preview.');
+}
+
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();savePage();}});
+
+// ── Init ───────────────────────────────────────────────────────
+drawCanvas();
+</script>
+{% endblock %}

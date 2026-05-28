@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}Coupons{% endblock %}
+{% block page_title %}Coupon Manager{% endblock %}
+{% block content %}
+<div class="form-grid-2">
+  <div class="admin-card">
+    <h3>Create Coupon</h3>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Coupon Code</label><input type="text" name="code" required placeholder="SAVE20" style="text-transform:uppercase"></div>
+      <div class="form-group"><label>Discount Type</label>
+        <select name="discount_type">
+          <option value="percent">Percentage (%)</option>
+          <option value="flat">Flat Amount (₹)</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Discount Value</label><input type="number" name="discount_value" required placeholder="20"></div>
+      <div class="form-group"><label>Minimum Order (₹)</label><input type="number" name="min_order" value="0"></div>
+      <button class="btn btn-primary">Create Coupon</button>
+    </form>
+  </div>
+  <div class="admin-card">
+    <h3>All Coupons</h3>
+    <table class="admin-table">
+      <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min Order</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for c in coupons %}
+      <tr>
+        <td><strong>{{ c.code }}</strong></td>
+        <td>{{ 'Percent' if c.discount_type == 'percent' else 'Flat' }}</td>
+        <td>{{ c.discount_value }}{{ '%' if c.discount_type == 'percent' else '₹' }}</td>
+        <td>₹{{ c.min_order or 0 }}</td>
+        <td><span class="status-badge {{ 'status-active' if c.is_active else 'status-inactive' }}">{{ 'Active' if c.is_active else 'Off' }}</span></td>
+        <td>
+          <form method="POST" action="/x-admin-9f3k2/coupons/delete/{{ c.id }}" style="display:inline" onsubmit="return confirm('Delete?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
