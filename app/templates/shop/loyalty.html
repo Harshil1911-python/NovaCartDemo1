@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Loyalty Points{% endblock %}
+{% block content %}
+<div class="container" style="max-width:800px;padding:2rem 1.25rem">
+  <h1 class="page-title"><i class="fas fa-coins" style="color:#F6AD55"></i> My Loyalty Points</h1>
+
+  <!-- Points Hero -->
+  <div class="loyalty-hero">
+    <div class="loyalty-pts-big">{{ points }}</div>
+    <div class="loyalty-pts-label">Available Points</div>
+    <div class="loyalty-pts-value">Worth ₹{{ points_value }}</div>
+    <div style="margin-top:1rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="/cart/checkout" class="btn btn-primary">Redeem at Checkout</a>
+      <a href="/marketing/referral" class="btn btn-outline">Earn More</a>
+    </div>
+  </div>
+
+  <!-- How it Works -->
+  <div class="admin-card" style="margin:1.5rem 0">
+    <h3 style="margin-bottom:1.25rem"><i class="fas fa-info-circle" style="color:var(--primary)"></i> How It Works</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">
+      {% for icon, title, desc in [
+        ('fas fa-shopping-cart','Earn on Orders','Get 1 point for every ₹10 spent'),
+        ('fas fa-user-plus','Referral Bonus','Earn 100 points when a friend signs up'),
+        ('fas fa-tag','Redeem','Use 10 points = ₹5 discount at checkout'),
+        ('fas fa-star','Bonuses','Extra points on special offers & events'),
+      ] %}
+      <div style="text-align:center;padding:1.25rem;background:var(--bg);border-radius:12px">
+        <i class="{{ icon }}" style="font-size:2rem;color:var(--primary);margin-bottom:.75rem;display:block"></i>
+        <strong style="display:block;margin-bottom:.4rem">{{ title }}</strong>
+        <p style="font-size:.85rem;color:var(--text-muted)">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- History -->
+  {% if history %}
+  <div class="admin-card">
+    <h3 style="margin-bottom:1rem">Points History</h3>
+    {% for h in history %}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 0;border-bottom:1px solid var(--border)">
+      <div>
+        <span style="font-size:.9rem;font-weight:600">{{ h.reason|replace('_',' ')|title }}</span>
+        <div style="font-size:.78rem;color:var(--text-muted)">{{ h.ts[:10] if h.ts else '' }}</div>
+      </div>
+      <span style="font-size:1.1rem;font-weight:700;color:{{ '#48BB78' if h.pts > 0 else '#FC8181' }}">
+        {{ '+' if h.pts > 0 else '' }}{{ h.pts }} pts
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_css %}
+<style>
+.loyalty-hero{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border-radius:16px;padding:3rem 2rem;text-align:center}
+.loyalty-pts-big{font-size:4rem;font-weight:800;line-height:1}
+.loyalty-pts-label{font-size:1.1rem;opacity:.85;margin:.25rem 0}
+.loyalty-pts-value{font-size:1.4rem;font-weight:600;background:rgba(255,255,255,.2);border-radius:8px;display:inline-block;padding:.25rem 1rem;margin-top:.5rem}
+</style>
+{% endblock %}

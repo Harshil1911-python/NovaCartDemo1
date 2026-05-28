@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}{% if selected_category %}{{ selected_category.name }}{% elif q %}Search: {{ q }}{% else %}All Products{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container shop-container">
+  <div class="shop-layout">
+    <!-- Sidebar Filters -->
+    <aside class="shop-sidebar" id="shopSidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-header">
+          <h3>Filters</h3>
+          <button class="sidebar-close-btn" id="sidebarClose"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="sidebar-card">
+          <h4 class="sidebar-title">Categories</h4>
+          <ul class="cat-filter-list">
+            <li><a href="/shop" class="{% if not category_slug %}active{% endif %}">All Products</a></li>
+            {% for cat in categories %}
+            <li><a href="/shop/category/{{ cat.slug }}" class="{% if cat.slug == category_slug %}active{% endif %}">
+              <i class="{{ cat.icon }}"></i> {{ cat.name }}
+            </a></li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="sidebar-card">
+          <h4 class="sidebar-title">Price Range</h4>
+          <form method="GET" action="/shop" id="filterForm">
+            <input type="hidden" name="category" value="{{ category_slug }}">
+            <input type="hidden" name="q" value="{{ q }}">
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <input type="hidden" name="rating" value="{{ rating_filter }}">
+            <div class="price-inputs">
+              <input type="number" name="min_price" placeholder="Min ₹" value="{{ min_price if min_price else '' }}" class="price-input">
+              <span>–</span>
+              <input type="number" name="max_price" placeholder="Max ₹" value="{{ max_price if max_price < 999999 else '' }}" class="price-input">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm w-full mt-2">Apply</button>
+          </form>
+        </div>
+
+        <div class="sidebar-card">
+          <h4 class="sidebar-title">Rating</h4>
+          <div class="rating-filter-list">
+            {% for r in [4,3,2,1] %}
+            <a href="?{{ request.query_string.decode()|replace('rating='+rating_filter|string,'')}}&rating={{ r }}"
+               class="rating-filter-item {% if rating_filter == r %}active{% endif %}">
+              {% for i in range(r) %}<i class="fas fa-star" style="color:#F6AD55"></i>{% endfor %}
+              {% for i in range(5-r) %}<i class="far fa-star" style="color:#CBD5E0"></i>{% endfor %}
+              <span>& up</span>
+            </a>
+            {% endfor %}
+            {% if rating_filter %}
+            <a href="?{{ request.query_string.decode()|replace('rating='+rating_filter|string,'') }}" class="clear-filter">Clear rating</a>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h4 class="sidebar-title">Offers</h4>
+          <ul class="cat-filter-list">
+            <li><a href="/shop?sale=1" class="{% if sale_only %}active{% endif %}"><i class="fas fa-tag"></i> On Sale</a></li>
+            <li><a href="/shop?sort=popular"><i class="fas fa-fire"></i> Most Popular</a></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main -->
+    <div class="shop-main">
+      <div class="shop-toolbar">
+        <div class="toolbar-left">
+          <button class="sidebar-toggle-btn" id="sidebarToggle">
+            <i class="fas fa-sliders-h"></i> Filters
+          </button>
+          <span class="result-count"><strong>{{ total }}</strong> products</span>
+          {% if q %}<span class="search-label">for "<strong>{{ q }}</strong>"</span>{% endif %}
+          {% if category_slug %}<span class="search-label">in <strong>{{ selected_category.name if selected_category else category_slug }}</strong></span>{% endif %}
+        </div>
+        <div class="toolbar-right">
+          <select class="sort-select" onchange="applySort(this.value)">
+            <option value="newest" {% if sort=='newest' %}selected{% endif %}>Newest</option>
+            <option value="popular" {% if sort=='popular' %}selected{% endif %}>Popular</option>
+            <option value="rating" {% if sort=='rating' %}selected{% endif %}>Top Rated</option>
+            <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Price ↑</option>
+            <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Price ↓</option>
+          </select>
+        </div>
+      </div>
+
+      {% if products %}
+      <div class="products-grid">
+        {% for product in products %}
+        {% include 'partials/product_card.html' %}
+        {% endfor %}
+      </div>
+
+      {% if total_pages > 1 %}
+      <div class="pagination">
+        {% if page > 1 %}
+        <a href="?{{ request.query_string.decode()|replace('page='+page|string,'') }}&page={{ page-1 }}" class="page-btn">&laquo;</a>
+        {% endif %}
+        {% for p in range([1, page-2]|max, [total_pages+1, page+3]|min) %}
+        <a href="?{{ request.query_string.decode()|replace('page='+page|string,'') }}&page={{ p }}"
+           class="page-btn {% if p == page %}active{% endif %}">{{ p }}</a>
+        {% endfor %}
+        {% if page < total_pages %}
+        <a href="?{{ request.query_string.decode()|replace('page='+page|string,'') }}&page={{ page+1 }}" class="page-btn">&raquo;</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="empty-state">
+        <i class="fas fa-search fa-3x"></i>
+        <h3>No products found</h3>
+        <p>Try adjusting your filters or search query.</p>
+        <a href="/shop" class="btn btn-primary">Browse All</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Compare Bar -->
+<div class="compare-bar" id="compareBar" style="display:none">
+  <div class="compare-bar-inner">
+    <span><i class="fas fa-balance-scale"></i> <span id="compareCount">0</span> items to compare</span>
+    <div id="compareItems" class="compare-items-preview"></div>
+    <a href="#" id="compareBtn" class="btn btn-primary btn-sm">Compare Now</a>
+    <button onclick="clearCompare()" class="btn btn-outline btn-sm">Clear</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Sidebar toggle
+document.getElementById('sidebarToggle')?.addEventListener('click', function(){
+  document.getElementById('shopSidebar')?.classList.add('open');
+  document.getElementById('sidebarOverlay')?.classList.add('show');
+});
+document.getElementById('sidebarClose')?.addEventListener('click', closeSidebar);
+document.getElementById('sidebarOverlay')?.addEventListener('click', closeSidebar);
+function closeSidebar() {
+  document.getElementById('shopSidebar')?.classList.remove('open');
+  document.getElementById('sidebarOverlay')?.classList.remove('show');
+}
+
+function applySort(val) {
+  const url = new URL(window.location);
+  url.searchParams.set('sort', val);
+  window.location = url;
+}
+
+// Compare
+let compareIds = JSON.parse(localStorage.getItem('compareIds')||'[]');
+
+function addToCompare(id, name, btn) {
+  if(compareIds.includes(id)) {
+    compareIds = compareIds.filter(i=>i!==id);
+    btn?.classList.remove('compare-active');
+  } else {
+    if(compareIds.length >= 3) { alert('Max 3 products to compare'); return; }
+    compareIds.push(id);
+    btn?.classList.add('compare-active');
+  }
+  localStorage.setItem('compareIds', JSON.stringify(compareIds));
+  updateCompareBar();
+}
+
+function getCompareIds() { return JSON.parse(localStorage.getItem('compareIds')||'[]'); }
+
+function updateCompareBar() {
+  const bar = document.getElementById('compareBar');
+  const count = document.getElementById('compareCount');
+  if(!bar) return;
+  if(compareIds.length > 0) {
+    bar.style.display = 'flex';
+    if(count) count.textContent = compareIds.length;
+    const btn = document.getElementById('compareBtn');
+    if(btn) btn.href = '/shop/compare?ids=' + compareIds.join(',');
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearCompare() {
+  compareIds = [];
+  localStorage.removeItem('compareIds');
+  updateCompareBar();
+  document.querySelectorAll('.compare-btn').forEach(b=>b.classList.remove('compare-active'));
+}
+
+// Init compare buttons
+compareIds = getCompareIds();
+updateCompareBar();
+document.querySelectorAll('.product-card').forEach(card=>{
+  const id = parseInt(card.dataset.id);
+  if(compareIds.includes(id)) {
+    card.querySelector('.compare-btn')?.classList.add('compare-active');
+  }
+});
+</script>
+{% endblock %}

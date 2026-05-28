@@ -1,0 +1,54 @@
+{% extends "seller/base.html" %}
+{% block title %}Orders{% endblock %}
+{% block page_title %}My Orders{% endblock %}
+{% block content %}
+<div class="admin-card">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Order ID</th><th>Customer</th><th>Phone</th>
+        <th>Address</th><th>My Items</th><th>Amount</th>
+        <th>Payment</th><th>Status</th><th>Date</th><th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for o in orders %}
+    <tr>
+      <td><strong>#{{ o.order_id }}</strong></td>
+      <td>{{ o.name }}</td>
+      <td>{{ o.phone }}</td>
+      <td style="font-size:.82rem">{{ o.address }}, {{ o.city }}<br>{{ o.state }} - {{ o.pincode }}</td>
+      <td>
+        {% for item in o._seller_items %}
+        <div style="font-size:.82rem">{{ item.name }} × {{ item.quantity }}</div>
+        {% endfor %}
+      </td>
+      <td>₹{{ o.total|int }}</td>
+      <td>{{ 'COD' if o.payment_method == 'cod' else 'Online' }}</td>
+      <td>
+        <form method="POST" action="/seller/orders/{{ o.id }}/confirm" style="display:flex;gap:4px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="status" class="status-select">
+            {% for s in ['pending','confirmed','shipped','delivered','cancelled'] %}
+            <option value="{{ s }}" {% if o.status == s %}selected{% endif %}>{{ s|title }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-sm btn-primary">Update</button>
+        </form>
+      </td>
+      <td>{{ o.created_at[:10] if o.created_at else '' }}</td>
+      <td>
+        {% if settings.get('whatsapp_number') %}
+        <a href="https://wa.me/{{ o.phone }}?text=Hi {{ o.name }}, your Nova Cart order %23{{ o.order_id }} update:"
+           class="btn btn-sm btn-whatsapp" target="_blank"><i class="fab fa-whatsapp"></i></a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% if not orders %}
+    <tr><td colspan="10" class="empty-msg">No orders yet.</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

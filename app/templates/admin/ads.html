@@ -1,0 +1,130 @@
+{% extends "admin/base.html" %}
+{% block title %}Ads Manager{% endblock %}
+{% block page_title %}Ads Manager{% endblock %}
+{% block content %}
+<div class="form-grid-2">
+  <!-- Create Ad -->
+  <div class="admin-card">
+    <h3><i class="fas fa-plus-circle"></i> Create New Ad</h3>
+    <form method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Ad Title</label><input type="text" name="title" required></div>
+      <div class="form-group"><label>Banner Image</label><input type="file" name="image" accept="image/*" class="file-input"></div>
+      <div class="form-group"><label>Redirect Link</label><input type="url" name="link" placeholder="https://..."></div>
+      <div class="form-group">
+        <label>Placement</label>
+        <select name="placement">
+          {% for p,l in [('homepage','Homepage — Between sections'),('sidebar','Shop Sidebar'),
+            ('category','Category Pages — Top'),('product_top','Product Page — Top'),
+            ('product_bottom','Product Page — Bottom'),('cart','Cart Page'),
+            ('checkout','Checkout Page'),('popup','Popup Ad'),('banner_top','Site-wide Top Banner')] %}
+          <option value="{{ p }}">{{ l }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-primary"><i class="fas fa-plus"></i> Create Ad</button>
+    </form>
+  </div>
+
+  <!-- Placement Guide -->
+  <div class="admin-card">
+    <h3><i class="fas fa-map"></i> Ad Placement Guide</h3>
+    <div class="placement-guide">
+      {% for p,l,d in [
+        ('homepage','Homepage','Shown between trending/featured sections'),
+        ('sidebar','Shop Sidebar','Right sidebar on product listing page'),
+        ('category','Category Pages','Banner at top of category pages'),
+        ('product_top','Product Page Top','Below product title, above cart button'),
+        ('product_bottom','Product Page Bottom','Below description tabs'),
+        ('cart','Cart Page','Shown in cart sidebar'),
+        ('checkout','Checkout Page','Shown during checkout'),
+        ('popup','Popup Ad','Full-screen overlay popup'),
+        ('banner_top','Top Banner','Scrolling banner above navbar'),
+      ] %}
+      <div class="placement-item">
+        <div class="placement-dot"></div>
+        <div>
+          <strong>{{ l }}</strong>
+          <p>{{ d }}</p>
+        </div>
+        <span class="badge-role">{{ ads|selectattr('placement','equalto',p)|list|length }} active</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- All Ads -->
+<div class="admin-card">
+  <div class="card-header">
+    <h3>All Ads ({{ ads|length }})</h3>
+  </div>
+  {% if ads %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem">
+    {% for ad in ads %}
+    <div class="ad-manager-card {% if not ad.is_active %}ad-inactive{% endif %}">
+      <div class="ad-preview">
+        {% if ad.image %}
+        <img src="{{ ad.image }}" alt="{{ ad.title }}" class="ad-preview-img">
+        {% else %}
+        <div class="ad-preview-placeholder"><i class="fas fa-image"></i><span>No Image</span></div>
+        {% endif %}
+        <div class="ad-placement-badge">{{ ad.placement }}</div>
+      </div>
+      <div class="ad-info">
+        <strong>{{ ad.title }}</strong>
+        <p><i class="fas fa-link"></i> {{ ad.link or 'No link' }}</p>
+        <div class="ad-stats">
+          <span><i class="fas fa-mouse-pointer"></i> {{ ad.clicks or 0 }} clicks</span>
+          <span><i class="fas fa-eye"></i> {{ ad.impressions or 0 }} views</span>
+        </div>
+      </div>
+      <div class="ad-actions">
+        <form method="POST" action="/x-admin-9f3k2/ads/toggle/{{ ad.id }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm {{ 'btn-warning' if ad.is_active else 'btn-success' }}">
+            {{ 'Pause' if ad.is_active else 'Activate' }}
+          </button>
+        </form>
+        <a href="/x-admin-9f3k2/ads/preview/{{ ad.id }}" target="_blank" class="btn btn-sm btn-outline">
+          <i class="fas fa-eye"></i> Preview
+        </a>
+        <form method="POST" action="/x-admin-9f3k2/ads/delete/{{ ad.id }}" style="display:inline"
+              onsubmit="return confirm('Delete this ad?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-msg">No ads yet. Create your first ad above.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.placement-guide{display:flex;flex-direction:column;gap:.6rem}
+.placement-item{display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border)}
+.placement-dot{width:10px;height:10px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:.3rem}
+.placement-item strong{display:block;font-size:.88rem;font-weight:700}
+.placement-item p{font-size:.8rem;color:var(--text-muted);margin:.1rem 0}
+.placement-item .badge-role{margin-left:auto;flex-shrink:0}
+
+.ad-manager-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .2s}
+.ad-manager-card:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+.ad-inactive{opacity:.6}
+.ad-preview{position:relative;height:140px;overflow:hidden;background:#F0F2F8}
+.ad-preview-img{width:100%;height:100%;object-fit:cover}
+.ad-preview-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#A0AEC0;gap:.5rem;font-size:.85rem}
+.ad-preview-placeholder i{font-size:2.5rem}
+.ad-placement-badge{position:absolute;top:.5rem;right:.5rem;background:var(--primary);color:#fff;font-size:.72rem;font-weight:700;padding:.2rem .55rem;border-radius:6px}
+.ad-info{padding:.85rem}
+.ad-info strong{display:block;font-size:.92rem;font-weight:700;margin-bottom:.25rem}
+.ad-info p{font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ad-stats{display:flex;gap:1rem;margin-top:.5rem;font-size:.8rem;color:var(--text-muted)}
+.ad-actions{display:flex;gap:.4rem;flex-wrap:wrap;padding:.75rem;border-top:1px solid var(--border);background:var(--white)}
+</style>
+{% endblock %}

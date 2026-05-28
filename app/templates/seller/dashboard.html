@@ -1,0 +1,112 @@
+{% extends "seller/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Seller Dashboard{% endblock %}
+{% block content %}
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card stat-blue">
+    <div class="stat-icon"><i class="fas fa-box"></i></div>
+    <div class="stat-info"><span class="stat-value">{{ stats.total_products }}</span><span class="stat-label">Products</span></div>
+  </div>
+  <div class="stat-card stat-green">
+    <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+    <div class="stat-info"><span class="stat-value">₹{{ stats.revenue|int }}</span><span class="stat-label">Total Revenue</span></div>
+  </div>
+  <div class="stat-card stat-purple">
+    <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
+    <div class="stat-info"><span class="stat-value">{{ stats.total_orders }}</span><span class="stat-label">Orders</span></div>
+  </div>
+  <div class="stat-card stat-red">
+    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+    <div class="stat-info"><span class="stat-value">{{ stats.low_stock|length }}</span><span class="stat-label">Low Stock</span></div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+  <a href="/seller/products/add" class="quick-btn"><i class="fas fa-plus"></i> Add Product</a>
+  <a href="/seller/products" class="quick-btn"><i class="fas fa-box"></i> My Products</a>
+  <a href="/shop/store/{{ seller.slug }}" class="quick-btn" target="_blank"><i class="fas fa-store"></i> View Store</a>
+</div>
+
+{% if stats.low_stock %}
+<div class="admin-card">
+  <h3><i class="fas fa-exclamation-triangle text-warning"></i> Low Stock Alert</h3>
+  {% for p in stats.low_stock %}
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border)">
+    <span>{{ p.name }}</span>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <span class="badge-warning">{{ p.stock }} left</span>
+      <a href="/seller/products/edit/{{ p.id }}" class="btn btn-sm btn-outline">Update Stock</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Earnings Breakdown -->
+{% if earnings_breakdown %}
+<div class="admin-card">
+  <div class="card-header">
+    <h3><i class="fas fa-chart-bar"></i> Earnings by Product</h3>
+  </div>
+  <table class="admin-table">
+    <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+    <tbody>
+    {% for e in earnings_breakdown %}
+    <tr>
+      <td>{{ e.name }}</td>
+      <td>{{ e.units }}</td>
+      <td><strong>₹{{ e.revenue|int }}</strong></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Recent Orders -->
+{% if recent_orders %}
+<div class="admin-card">
+  <div class="card-header">
+    <h3>Recent Orders</h3>
+  </div>
+  <table class="admin-table">
+    <thead><tr><th>Order ID</th><th>Customer</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for o in recent_orders %}
+    <tr>
+      <td><strong>#{{ o.order_id }}</strong></td>
+      <td>{{ o.name }}</td>
+      <td>₹{{ o.total|int }}</td>
+      <td><span class="status-badge status-{{ o.status }}">{{ o.status|title }}</span></td>
+      <td>{{ o.created_at[:10] if o.created_at else '' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Recent Products -->
+<div class="admin-card">
+  <div class="card-header">
+    <h3>My Products</h3>
+    <a href="/seller/products" class="btn btn-sm btn-primary">View All</a>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem">
+    {% for p in products %}
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <img src="{{ p.images[0] if p.images else '/static/images/no-image.png' }}"
+           style="width:100%;height:120px;object-fit:cover">
+      <div style="padding:.75rem">
+        <p style="font-size:.85rem;font-weight:600;margin-bottom:.25rem">{{ p.name[:40] }}</p>
+        <p style="font-size:.82rem;color:var(--text-muted)">₹{{ p.discount_price or p.price }} · Stock: {{ p.stock }}</p>
+        <a href="/seller/products/edit/{{ p.id }}" class="btn btn-sm btn-outline" style="margin-top:.4rem;width:100%;justify-content:center">Edit</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

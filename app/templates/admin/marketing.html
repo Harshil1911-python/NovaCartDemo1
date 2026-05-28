@@ -1,0 +1,126 @@
+{% extends "admin/base.html" %}
+{% block title %}Marketing{% endblock %}
+{% block page_title %}Marketing Hub{% endblock %}
+{% block content %}
+<div class="stats-grid" style="margin-bottom:1.5rem">
+  {% for icon,color,val,label in [
+    ('fa-envelope','stat-blue', newsletter|length, 'Newsletter Subs'),
+    ('fa-coins','stat-orange', loyalty|length, 'Loyalty Users'),
+    ('fa-share-alt','stat-green', referrals|length, 'Referrals Made'),
+    ('fa-bell','stat-purple', notifs|length, 'Notifications Sent'),
+  ] %}
+  <div class="stat-card {{ color }}">
+    <div class="stat-icon"><i class="fas {{ icon }}"></i></div>
+    <div class="stat-info"><span class="stat-value">{{ val }}</span><span class="stat-label">{{ label }}</span></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="form-grid-2">
+  <div class="admin-card">
+    <h3><i class="fas fa-bell"></i> Send Notification to Users</h3>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="send_notification">
+      <div class="form-group"><label>Title</label><input type="text" name="title" required placeholder="🎉 Special Offer!"></div>
+      <div class="form-group"><label>Message</label><textarea name="message" rows="3" required placeholder="Get 20% off today only..."></textarea></div>
+      <div class="form-group"><label>Send To</label>
+        <select name="target">
+          <option value="all">All Users</option>
+          <option value="customer">Customers Only</option>
+          <option value="seller">Sellers Only</option>
+        </select>
+      </div>
+      <button class="btn btn-primary"><i class="fas fa-paper-plane"></i> Send Notification</button>
+    </form>
+  </div>
+
+  <div class="admin-card">
+    <h3><i class="fas fa-coins"></i> Loyalty & Referral Settings</h3>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="set_loyalty">
+      <div class="form-group"><label>₹ per Point (redemption value)</label><input type="number" name="points_value" step="0.1" value="{{ s.get('points_value','0.5') }}"></div>
+      <div class="form-group"><label>Referral Bonus (points)</label><input type="number" name="referral_bonus" value="{{ s.get('referral_bonus','100') }}"></div>
+      <button class="btn btn-primary">Save Settings</button>
+    </form>
+    <hr style="margin:1.25rem 0">
+    <h4 style="margin-bottom:.75rem">Gift Points to User</h4>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="add_loyalty">
+      <div class="form-row">
+        <div class="form-group flex-1"><label>User ID</label><input type="number" name="user_id" placeholder="1"></div>
+        <div class="form-group flex-1"><label>Points</label><input type="number" name="points" placeholder="100"></div>
+      </div>
+      <button class="btn btn-success btn-sm"><i class="fas fa-gift"></i> Gift Points</button>
+    </form>
+  </div>
+
+  <div class="admin-card">
+    <div class="card-header">
+      <h3><i class="fas fa-envelope"></i> Newsletter ({{ newsletter|length }})</h3>
+      <a href="/x-admin-9f3k2/export/newsletter" class="btn btn-sm btn-outline"><i class="fas fa-download"></i> CSV</a>
+    </div>
+    {% if newsletter %}
+    <div style="max-height:240px;overflow-y:auto">
+      <table class="admin-table">
+        <thead><tr><th>#</th><th>Email</th><th>Date</th></tr></thead>
+        <tbody>
+        {% for sub in newsletter %}
+        <tr><td>{{ loop.index }}</td><td>{{ sub.email }}</td><td>{{ sub.created_at[:10] if sub.created_at else '' }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<p class="empty-msg">No subscribers yet.</p>{% endif %}
+  </div>
+
+  <div class="admin-card">
+    <div class="card-header">
+      <h3><i class="fas fa-trophy"></i> Loyalty Leaderboard</h3>
+      <a href="/x-admin-9f3k2/export/loyalty" class="btn btn-sm btn-outline"><i class="fas fa-download"></i> CSV</a>
+    </div>
+    {% if loyalty %}
+    <table class="admin-table">
+      <thead><tr><th>Rank</th><th>User ID</th><th>Points</th></tr></thead>
+      <tbody>
+      {% for rec in loyalty|sort(attribute='points',reverse=True) %}
+      {% if loop.index <= 10 %}
+      <tr>
+        <td>{% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}</td>
+        <td>#{{ rec.user_id }}</td>
+        <td><strong style="color:var(--primary)">{{ rec.points }}</strong></td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="empty-msg">No loyalty data yet.</p>{% endif %}
+  </div>
+</div>
+
+{% if referrals %}
+<div class="admin-card">
+  <div class="card-header">
+    <h3><i class="fas fa-share-alt"></i> Referral Activity</h3>
+    <a href="/x-admin-9f3k2/export/referrals" class="btn btn-sm btn-outline"><i class="fas fa-download"></i> CSV</a>
+  </div>
+  <table class="admin-table">
+    <thead><tr><th>Referrer</th><th>Referred</th><th>Code</th><th>Points</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for r in referrals %}
+    {% if loop.index <= 20 %}
+    <tr>
+      <td>#{{ r.referrer_id }}</td><td>#{{ r.referred_id }}</td>
+      <td><code>{{ r.code }}</code></td>
+      <td><span class="in-stock">+{{ r.points_earned }}</span></td>
+      <td>{{ r.ts[:10] if r.ts else '' }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

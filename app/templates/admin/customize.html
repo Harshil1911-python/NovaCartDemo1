@@ -1,0 +1,269 @@
+{% extends "admin/base.html" %}
+{% block title %}Customization{% endblock %}
+{% block page_title %}Advanced Customization{% endblock %}
+{% block content %}
+<form method="POST" class="admin-form" id="customizeForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <!-- Tab Nav -->
+  <div class="cust-tabs">
+    {% for tab in [('layout','fa-th-large','Layout'),('badges','fa-tag','Badges'),
+                   ('scripts','fa-code','Scripts'),('netlify','fa-external-link-alt','External Links'),
+                   ('features','fa-toggle-on','Features')] %}
+    <button type="button" class="cust-tab {% if loop.first %}active{% endif %}"
+            onclick="switchCustTab(this,'ct-{{ tab[0] }}')">
+      <i class="fas {{ tab[1] }}"></i> {{ tab[2] }}
+    </button>
+    {% endfor %}
+  </div>
+
+  <!-- Layout Tab -->
+  <div class="cust-panel active" id="ct-layout">
+    <div class="form-grid-2">
+      <div class="admin-card">
+        <h3>Layout Options</h3>
+        <div class="form-group">
+          <label>Homepage Layout</label>
+          <select name="homepage_layout">
+            {% for o in ['default','wide','compact','magazine'] %}
+            <option value="{{ o }}" {% if s.get('homepage_layout','default')==o %}selected{% endif %}>{{ o|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Products Per Row</label>
+          <select name="products_per_row">
+            {% for n in ['2','3','4','5'] %}
+            <option value="{{ n }}" {% if s.get('products_per_row','4')==n %}selected{% endif %}>{{ n }} products</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Button Style</label>
+          <select name="btn_style">
+            {% for o in ['rounded','square','pill','outline'] %}
+            <option value="{{ o }}" {% if s.get('btn_style','rounded')==o %}selected{% endif %}>{{ o|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Product Card Style</label>
+          <select name="product_card_style">
+            {% for o in ['default','minimal','bordered','shadowed'] %}
+            <option value="{{ o }}" {% if s.get('product_card_style','default')==o %}selected{% endif %}>{{ o|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Card Shadow</label>
+          <select name="card_shadow">
+            {% for o,l in [('none','None'),('sm','Subtle'),('default','Default'),('lg','Strong'),('colored','Colored')] %}
+            <option value="{{ o }}" {% if s.get('card_shadow','default')==o %}selected{% endif %}>{{ l }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Footer Style</label>
+          <select name="footer_style">
+            {% for o in ['dark','light','gradient','minimal'] %}
+            <option value="{{ o }}" {% if s.get('footer_style','dark')==o %}selected{% endif %}>{{ o|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cart Style</label>
+          <select name="cart_style">
+            {% for o in ['sidebar','page','modal'] %}
+            <option value="{{ o }}" {% if s.get('cart_style','page')==o %}selected{% endif %}>{{ o|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Currency Symbol</label>
+          <input type="text" name="currency_symbol" value="{{ s.get('currency_symbol','₹') }}" style="max-width:80px">
+        </div>
+      </div>
+      <div>
+        <div class="admin-card">
+          <h3>Hero Section Colors</h3>
+          <div class="form-group">
+            <label>Gradient From</label>
+            <div class="color-picker-row">
+              <input type="color" name="hero_gradient_from" value="{{ s.get('hero_gradient_from','#1A1A2E') }}">
+              <input type="text" value="{{ s.get('hero_gradient_from','#1A1A2E') }}" class="prop-input">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Gradient To</label>
+            <div class="color-picker-row">
+              <input type="color" name="hero_gradient_to" value="{{ s.get('hero_gradient_to','#0F3460') }}">
+              <input type="text" value="{{ s.get('hero_gradient_to','#0F3460') }}" class="prop-input">
+            </div>
+          </div>
+        </div>
+        <div class="admin-card">
+          <h3>Page Loader</h3>
+          <label class="toggle-label"><input type="checkbox" name="loader_active" value="true" {% if s.get('loader_active')=='true' %}checked{% endif %}> Show Page Loader Animation</label>
+          <div class="form-group mt-2">
+            <label>Loader Color</label>
+            <div class="color-picker-row">
+              <input type="color" name="loader_color" value="{{ s.get('loader_color','#6C63FF') }}">
+              <input type="text" value="{{ s.get('loader_color','#6C63FF') }}" class="prop-input">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badges Tab -->
+  <div class="cust-panel" id="ct-badges">
+    <div class="admin-card" style="max-width:600px">
+      <h3>Product Badges & Labels</h3>
+      <div class="form-group">
+        <label>Sale Badge Text (use {pct} for percent)</label>
+        <input type="text" name="custom_badge_text" value="{{ s.get('custom_badge_text','{pct}% OFF') }}" placeholder="{pct}% OFF">
+      </div>
+      <div class="form-group">
+        <label>Sale Badge Color</label>
+        <div class="color-picker-row">
+          <input type="color" name="sale_badge_color" value="{{ s.get('sale_badge_color','#FF6584') }}">
+          <input type="text" value="{{ s.get('sale_badge_color','#FF6584') }}" class="prop-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="toggle-label"><input type="checkbox" name="show_rating_in_card" value="true" {% if s.get('show_rating_in_card','true')=='true' %}checked{% endif %}> Show Star Ratings on Product Cards</label>
+      </div>
+      <div class="form-group">
+        <label class="toggle-label"><input type="checkbox" name="show_stock_in_card" value="true" {% if s.get('show_stock_in_card')=='true' %}checked{% endif %}> Show Low-Stock Warning on Cards</label>
+      </div>
+      <div class="form-group">
+        <label class="toggle-label"><input type="checkbox" name="show_breadcrumb" value="true" {% if s.get('show_breadcrumb','true')=='true' %}checked{% endif %}> Show Breadcrumbs on Product Pages</label>
+      </div>
+      <div class="form-group">
+        <label class="toggle-label"><input type="checkbox" name="product_zoom" value="true" {% if s.get('product_zoom','true')=='true' %}checked{% endif %}> Enable Image Zoom on Hover</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts Tab -->
+  <div class="cust-panel" id="ct-scripts">
+    <div class="admin-card">
+      <h3><i class="fas fa-code"></i> Custom Code Injection</h3>
+      <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem">Inject custom HTML/JS/CSS anywhere on the site. Changes apply to all pages.</p>
+      <div class="form-group">
+        <label>Header Scripts (inside &lt;head&gt;)</label>
+        <textarea name="header_scripts" rows="5" placeholder="<!-- Analytics, fonts, meta tags -->"
+                  style="font-family:monospace;font-size:.85rem">{{ s.get('header_scripts','') }}</textarea>
+        <small>Use for: Google Analytics, Facebook Pixel, custom fonts, meta tags</small>
+      </div>
+      <div class="form-group">
+        <label>Footer Scripts (before &lt;/body&gt;)</label>
+        <textarea name="body_end_scripts" rows="5" placeholder="<!-- Chat widgets, tracking scripts -->"
+                  style="font-family:monospace;font-size:.85rem">{{ s.get('body_end_scripts','') }}</textarea>
+        <small>Use for: Intercom, Tawk.to, Facebook Chat, custom JS</small>
+      </div>
+      <div class="form-group">
+        <label>Custom CSS</label>
+        <textarea name="custom_css" rows="6" placeholder="/* Your custom CSS */"
+                  style="font-family:monospace;font-size:.85rem">{{ s.get('custom_css','') }}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Custom JavaScript</label>
+        <textarea name="custom_js" rows="6" placeholder="// Your custom JavaScript"
+                  style="font-family:monospace;font-size:.85rem">{{ s.get('custom_js','') }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Netlify / External Links Tab -->
+  <div class="cust-panel" id="ct-netlify">
+    <div class="admin-card">
+      <h3><i class="fas fa-external-link-alt"></i> External Page Links (Netlify/Vercel etc.)</h3>
+      <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1.25rem">
+        Link to pages hosted on Netlify, Vercel, GitHub Pages, or any external URL.
+        These will appear in your site navigation and footer.
+      </p>
+      <div class="form-grid-2">
+        {% for key, label in [
+          ('netlify_about','About Us Page URL'),
+          ('netlify_contact','Contact Page URL'),
+          ('netlify_privacy','Privacy Policy URL'),
+          ('netlify_refund','Refund Policy URL'),
+          ('netlify_shipping','Shipping Policy URL'),
+          ('netlify_custom_1','Custom Page 1 URL'),
+          ('netlify_custom_2','Custom Page 2 URL'),
+          ('netlify_custom_3','Custom Page 3 URL'),
+        ] %}
+        <div class="form-group">
+          <label>{{ label }}</label>
+          <input type="url" name="{{ key }}" value="{{ s.get(key,'') }}" placeholder="https://yoursite.netlify.app/about">
+        </div>
+        {% endfor %}
+      </div>
+      <h3 style="margin-top:1.5rem">Custom Navigation Links</h3>
+      <div class="form-grid-2">
+        {% for i in range(1,4) %}
+        <div style="display:flex;gap:.5rem">
+          <div class="form-group flex-1">
+            <label>Link {{ i }} Label</label>
+            <input type="text" name="custom_link_{{ i }}_label" value="{{ s.get('custom_link_'+i|string+'_label','') }}" placeholder="Blog">
+          </div>
+          <div class="form-group flex-1">
+            <label>Link {{ i }} URL</label>
+            <input type="url" name="custom_link_{{ i }}_url" value="{{ s.get('custom_link_'+i|string+'_url','') }}" placeholder="https://...">
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Tab -->
+  <div class="cust-panel" id="ct-features">
+    <div class="admin-card" style="max-width:600px">
+      <h3>Toggle Features</h3>
+      <div class="checkbox-list">
+        {% for key, label in [
+          ('navbar_sticky','Sticky Navbar'),
+          ('show_live_visitors','Live Visitor Counter'),
+          ('show_social_proof','"Recently Purchased" Popups'),
+          ('show_whatsapp_fab','WhatsApp Float Button'),
+        ] %}
+        <label class="toggle-label" style="padding:.6rem 0;border-bottom:1px solid var(--border)">
+          <input type="checkbox" name="{{ key }}" value="true" {% if s.get(key,'true')=='true' %}checked{% endif %}>
+          <span>{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions" style="position:sticky;bottom:0;background:var(--bg);padding:1rem 0;margin-top:1rem">
+    <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Save All Customizations</button>
+    <a href="/" target="_blank" class="btn btn-outline">Preview Site</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.cust-tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.5rem;background:var(--white);padding:.5rem;border-radius:12px;border:1px solid var(--border)}
+.cust-tab{background:none;border:none;padding:.5rem 1rem;border-radius:8px;font-size:.88rem;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all .2s;display:flex;align-items:center;gap:.4rem}
+.cust-tab.active,.cust-tab:hover{background:var(--primary);color:#fff}
+.cust-panel{display:none}
+.cust-panel.active{display:block}
+.prop-input{border:1.5px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-size:.85rem;background:var(--white);color:var(--text);flex:1}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchCustTab(btn, id) {
+  document.querySelectorAll('.cust-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.cust-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id)?.classList.add('active');
+}
+</script>
+{% endblock %}

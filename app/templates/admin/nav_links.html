@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+{% block title %}Nav Links{% endblock %}
+{% block page_title %}Navigation Links{% endblock %}
+{% block content %}
+<div class="form-grid-2">
+  <div class="admin-card">
+    <h3>Add Link</h3>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Label</label><input type="text" name="label" required placeholder="Shop"></div>
+      <div class="form-group"><label>URL</label><input type="text" name="url" required placeholder="/shop"></div>
+      <div class="form-group"><label>Location</label>
+        <select name="location">
+          <option value="navbar">Navbar</option>
+          <option value="footer">Footer</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Sort Order</label><input type="number" name="sort_order" value="0"></div>
+      <button class="btn btn-primary">Add Link</button>
+    </form>
+  </div>
+  <div class="admin-card">
+    <h3>All Links</h3>
+    <table class="admin-table">
+      <thead><tr><th>Label</th><th>URL</th><th>Location</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for l in links %}
+      <tr>
+        <td>{{ l.label }}</td>
+        <td><code>{{ l.url }}</code></td>
+        <td><span class="badge-role">{{ l.location }}</span></td>
+        <td>
+          <form method="POST" action="/x-admin-9f3k2/nav-links/delete/{{ l.id }}" style="display:inline" onsubmit="return confirm('Delete?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

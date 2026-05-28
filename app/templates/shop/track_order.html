@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Track Order #{{ order.order_id }}{% endblock %}
+{% block content %}
+<div class="container" style="max-width:700px">
+  <h1 class="page-title"><i class="fas fa-map-marker-alt"></i> Order Tracking</h1>
+  <div class="track-card">
+    <div class="track-header">
+      <div>
+        <strong style="font-size:1.1rem">#{{ order.order_id }}</strong>
+        <p style="color:var(--text-muted);margin-top:.25rem">{{ order_lines|length }} item(s) · ₹{{ order.total|int }}</p>
+      </div>
+      <span class="status-badge status-{{ order.status }}">{{ order.status|title }}</span>
+    </div>
+
+    <div class="tracking-steps big">
+      {% set steps = [
+        ('pending','Order Placed','fas fa-shopping-bag','Your order has been received and is being processed.'),
+        ('confirmed','Confirmed','fas fa-check-circle','Order has been confirmed by the seller.'),
+        ('shipped','Out for Delivery','fas fa-truck','Your package is on its way to you.'),
+        ('delivered','Delivered','fas fa-box-open','Order delivered successfully. Enjoy!')
+      ] %}
+      {% set status_order = ['pending','confirmed','shipped','delivered'] %}
+      {% set current_idx = status_order.index(order.status) if order.status in status_order else 0 %}
+      {% for key, label, icon, desc in steps %}
+      {% set idx = loop.index0 %}
+      <div class="track-step-big {{ 'done' if idx <= current_idx else '' }}">
+        <div class="track-icon-big"><i class="{{ icon }}"></i></div>
+        <div class="track-text">
+          <strong>{{ label }}</strong>
+          <p>{{ desc }}</p>
+        </div>
+      </div>
+      {% if not loop.last %}
+      <div class="track-vline {{ 'done' if idx < current_idx else '' }}"></div>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Order Items -->
+    <div class="order-details mt-3">
+      <h3>Order Items</h3>
+      {% for item in order_lines %}
+      <div class="order-item-row">
+        <span>{{ item.name }} × {{ item.quantity }}</span>
+        <strong>₹{{ item.subtotal|int }}</strong>
+      </div>
+      {% endfor %}
+      <hr>
+      <div class="order-item-row total-row">
+        <span>Total</span>
+        <strong>₹{{ order.total|int }}</strong>
+      </div>
+    </div>
+
+    <div class="delivery-info mt-3">
+      <h3>Delivery Address</h3>
+      <p><strong>{{ order.name }}</strong></p>
+      <p>{{ order.address }}, {{ order.city }}, {{ order.state }} - {{ order.pincode }}</p>
+      <p><i class="fas fa-phone"></i> {{ order.phone }}</p>
+    </div>
+
+    {% if settings.get('whatsapp_number') %}
+    <a href="https://wa.me/{{ settings.get('whatsapp_number') }}?text=Hi! I need an update on my order %23{{ order.order_id }}"
+       class="btn btn-whatsapp mt-2" target="_blank">
+      <i class="fab fa-whatsapp"></i> Get Update on WhatsApp
+    </a>
+    {% endif %}
+
+    <div class="success-actions mt-3">
+      <a href="/shop" class="btn btn-primary">Continue Shopping</a>
+      <a href="/auth/profile" class="btn btn-outline">All Orders</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

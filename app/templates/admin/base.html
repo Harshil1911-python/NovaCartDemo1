@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Admin{% endblock %} | Nova Cart</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin.css">
+{% block extra_css %}{% endblock %}
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="admin-brand"><i class="fas fa-store"></i><span>Nova Cart</span></div>
+    <nav class="admin-nav">
+      <a href="/x-admin-9f3k2/" class="anav {% if request.path=='/x-admin-9f3k2/' %}active{% endif %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+
+      <div class="anav-group">
+        <span class="anav-label">Catalogue</span>
+        <a href="/x-admin-9f3k2/products" class="anav {% if 'products' in request.path and 'data' not in request.path %}active{% endif %}"><i class="fas fa-box"></i> Products</a>
+        <a href="/x-admin-9f3k2/categories" class="anav {% if 'categories' in request.path %}active{% endif %}"><i class="fas fa-tags"></i> Categories</a>
+        <a href="/x-admin-9f3k2/inventory" class="anav {% if 'inventory' in request.path %}active{% endif %}"><i class="fas fa-warehouse"></i> Inventory</a>
+      </div>
+
+      <div class="anav-group">
+        <span class="anav-label">Sales</span>
+        <a href="/x-admin-9f3k2/orders" class="anav {% if request.path=='/x-admin-9f3k2/orders' %}active{% endif %}"><i class="fas fa-shopping-bag"></i> Orders</a>
+        <a href="/x-admin-9f3k2/users" class="anav {% if 'users' in request.path and 'data' not in request.path %}active{% endif %}"><i class="fas fa-users"></i> Customers</a>
+        <a href="/x-admin-9f3k2/sellers" class="anav {% if 'sellers' in request.path and 'data' not in request.path %}active{% endif %}"><i class="fas fa-store-alt"></i> Sellers</a>
+        <a href="/x-admin-9f3k2/coupons" class="anav {% if 'coupons' in request.path %}active{% endif %}"><i class="fas fa-ticket-alt"></i> Coupons</a>
+      </div>
+
+      <div class="anav-group">
+        <span class="anav-label">Marketing</span>
+        <a href="/x-admin-9f3k2/marketing" class="anav {% if 'marketing' in request.path %}active{% endif %}"><i class="fas fa-bullhorn"></i> Marketing Hub</a>
+        <a href="/analytics/admin-analytics" class="anav {% if 'analytics' in request.path %}active{% endif %}"><i class="fas fa-chart-bar"></i> Analytics</a>
+      </div>
+
+      <div class="anav-group">
+        <span class="anav-label">Content</span>
+        <a href="/x-admin-9f3k2/page-builder" class="anav {% if 'page-builder' in request.path %}active{% endif %}"><i class="fas fa-paint-brush"></i> Page Builder</a>
+        <a href="/x-admin-9f3k2/banners" class="anav {% if 'banners' in request.path %}active{% endif %}"><i class="fas fa-images"></i> Banners</a>
+        <a href="/x-admin-9f3k2/ads" class="anav {% if request.path.startswith('/x-admin-9f3k2/ads') %}active{% endif %}"><i class="fas fa-ad"></i> Ads Manager</a>
+        <a href="/x-admin-9f3k2/pages" class="anav {% if request.path=='/x-admin-9f3k2/pages' %}active{% endif %}"><i class="fas fa-file-alt"></i> Raw Pages</a>
+        <a href="/x-admin-9f3k2/nav-links" class="anav {% if 'nav-links' in request.path %}active{% endif %}"><i class="fas fa-link"></i> Nav Links</a>
+        <a href="/x-admin-9f3k2/testimonials" class="anav {% if 'testimonials' in request.path %}active{% endif %}"><i class="fas fa-star"></i> Testimonials</a>
+      </div>
+
+      <div class="anav-group">
+        <span class="anav-label">Design</span>
+        <a href="/x-admin-9f3k2/theme" class="anav {% if 'theme' in request.path %}active{% endif %}"><i class="fas fa-palette"></i> Theme & Colors</a>
+        <a href="/x-admin-9f3k2/customize" class="anav {% if 'customize' in request.path %}active{% endif %}"><i class="fas fa-sliders-h"></i> Customization</a>
+        <a href="/x-admin-9f3k2/settings" class="anav {% if 'settings' in request.path %}active{% endif %}"><i class="fas fa-cog"></i> Site Settings</a>
+        <a href="/x-admin-9f3k2/analytics-settings" class="anav {% if 'analytics-settings' in request.path %}active{% endif %}"><i class="fas fa-chart-line"></i> Analytics Setup</a>
+      </div>
+
+      <div class="anav-group">
+        <span class="anav-label">System</span>
+        <a href="/x-admin-9f3k2/data-vault" class="anav {% if 'data-vault' in request.path %}active{% endif %}"><i class="fas fa-database"></i> Data Vault</a>
+        <a href="/x-admin-9f3k2/security" class="anav {% if 'security' in request.path %}active{% endif %}"><i class="fas fa-shield-alt"></i> Security</a>
+        <a href="/x-admin-9f3k2/backup" class="anav {% if 'backup' in request.path %}active{% endif %}"><i class="fas fa-save"></i> Backup</a>
+      </div>
+
+      <a href="/" class="anav" target="_blank"><i class="fas fa-external-link-alt"></i> View Site</a>
+      <a href="/x-admin-9f3k2/logout" class="anav text-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <button class="sidebar-toggle" onclick="document.getElementById('adminSidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
+      <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+      <div class="topbar-right">
+        <a href="/x-admin-9f3k2/security" class="btn btn-sm btn-outline"><i class="fas fa-shield-alt"></i></a>
+        <a href="/" target="_blank" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Live</a>
+      </div>
+    </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="admin-flash">
+      {% for cat,msg in messages %}
+      <div class="flash flash-{{ cat }}">{{ msg }} <button onclick="this.parentElement.remove()">&times;</button></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <div class="admin-content">{% block content %}{% endblock %}</div>
+  </div>
+</div>
+<script src="/static/js/admin.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

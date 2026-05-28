@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ settings.get('dark_mode','false') }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="{% block meta_desc %}{{ settings.get('site_tagline','') }}{% endblock %}">
+<title>{% block title %}{% endblock %} | {{ settings.get('site_name','Nova Cart') }}</title>
+<link rel="icon" href="{{ settings.get('site_favicon','') or '/static/images/no-image.png' }}">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="/static/css/main.css">
+{% block extra_css %}{% endblock %}
+<style>
+:root{
+  --primary:{{ settings.get('primary_color','#6C63FF') }};
+  --secondary:{{ settings.get('secondary_color','#FF6584') }};
+  --accent:{{ settings.get('accent_color','#43E97B') }};
+  --bg:{{ settings.get('bg_color','#F8F9FA') }};
+  --navbar-bg:{{ settings.get('navbar_color','#FFFFFF') }};
+  --footer-bg:{{ settings.get('footer_color','#1A1A2E') }};
+  --text:{{ settings.get('text_color','#2D3748') }};
+  --font:{{ settings.get('font_family','Inter, sans-serif') }};
+  --btn-radius:{{ settings.get('button_radius','8px') }};
+  --card-radius:{{ settings.get('card_radius','12px') }};
+}
+{{ settings.get('custom_css','') }}
+</style>
+{{ settings.get('header_scripts','')|safe }}
+{% if settings.get('ga_tracking_id') %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ settings.get('ga_tracking_id') }}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ settings.get('ga_tracking_id') }}');</script>
+{% endif %}
+</head>
+<body>
+
+{% if settings.get('loader_active') == 'true' %}
+<div id="pageLoader" style="position:fixed;inset:0;background:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;transition:opacity .4s">
+  <div style="text-align:center">
+    <div style="width:48px;height:48px;border:4px solid #f0f0f0;border-top-color:{{ settings.get('loader_color','#6C63FF') }};border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1rem"></div>
+    <strong style="color:{{ settings.get('loader_color','#6C63FF') }};font-family:Inter,sans-serif">{{ settings.get('site_name','Nova Cart') }}</strong>
+  </div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<script>window.addEventListener('load',function(){var l=document.getElementById('pageLoader');if(l){l.style.opacity='0';setTimeout(function(){l.style.display='none'},400);}});</script>
+{% endif %}
+
+<!-- Site-wide Top Banner Ad -->
+{% set top_ads = get_ads('banner_top') %}
+{% if top_ads %}
+<a href="{{ top_ads[0].link or '#' }}" class="top-banner-ad" onclick="trackAd({{ top_ads[0].id }})">
+  {% if top_ads[0].image %}
+  <img src="{{ top_ads[0].image }}" alt="{{ top_ads[0].title }}" style="height:50px;object-fit:cover;width:100%">
+  {% else %}
+  <div class="top-banner-text"><i class="fas fa-bullhorn"></i> {{ top_ads[0].title }}</div>
+  {% endif %}
+</a>
+{% endif %}
+
+<!-- Announcement Bar -->
+{% if announcement %}
+<div class="announcement-bar">
+  <div class="container"><p><i class="fas fa-bullhorn"></i> {{ announcement }}</p></div>
+</div>
+{% endif %}
+
+<!-- Navbar -->
+<nav class="navbar {{ 'navbar-sticky' if settings.get('navbar_sticky','true')=='true' else '' }}" id="mainNav">
+  <div class="container nav-container">
+    <a href="/" class="brand">
+      {% if settings.get('site_logo') %}
+      <img src="{{ settings.get('site_logo') }}" alt="{{ settings.get('site_name') }}" class="brand-logo">
+      {% else %}
+      <span class="brand-text"><span class="brand-nova">Nova</span><span class="brand-cart">Cart</span></span>
+      {% endif %}
+    </a>
+
+    <div class="nav-search-wrap">
+      <form class="nav-search" action="/shop" method="GET" autocomplete="off">
+        <input type="text" name="q" id="navSearch" placeholder="Search products..." value="{{ request.args.get('q','') }}" class="search-input">
+        <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
+      </form>
+      <div class="search-dropdown" id="searchDropdown"></div>
+    </div>
+
+    <div class="nav-actions">
+      {% if current_user %}
+      <a href="/marketing/notifications" class="nav-icon" title="Notifications">
+        <i class="fas fa-bell"></i>
+        {% if notif_count > 0 %}<span class="cart-badge" style="background:#F6AD55">{{ notif_count }}</span>{% endif %}
+      </a>
+      <a href="/marketing/loyalty" class="nav-icon" title="My Points" style="display:none" id="loyaltyIcon">
+        <i class="fas fa-coins" style="color:#F6AD55"></i>
+        <span class="nav-icon-label" style="color:#F6AD55">{{ loyalty_points }}pts</span>
+      </a>
+      <a href="/auth/profile" class="nav-icon">
+        <div class="nav-avatar">{{ current_user.name[0].upper() }}</div>
+        <span class="nav-icon-label">{{ current_user.name.split()[0][:10] }}</span>
+      </a>
+      {% else %}
+      <a href="/auth/login" class="nav-icon"><i class="fas fa-user"></i><span class="nav-icon-label">Login</span></a>
+      {% endif %}
+      <a href="/cart/" class="nav-icon cart-icon">
+        <i class="fas fa-shopping-cart"></i>
+        {% if cart_count > 0 %}<span class="cart-badge">{{ cart_count }}</span>{% endif %}
+        <span class="nav-icon-label">Cart</span>
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu"><span></span><span></span><span></span></button>
+    </div>
+
+    <ul class="nav-links" id="navLinks">
+      {% for link in navbar_links %}
+      <li><a href="{{ link.url }}" class="nav-link">{{ link.label }}</a></li>
+      {% endfor %}
+      {% for link in external_links[:3] %}
+      <li><a href="{{ link.url }}" class="nav-link" target="_blank" rel="noopener">{{ link.label }} <i class="fas fa-external-link-alt" style="font-size:.65rem;opacity:.6"></i></a></li>
+      {% endfor %}
+      {% if current_user and current_user.role in ('seller','admin') %}
+      <li><a href="/seller/dashboard" class="nav-link nav-seller"><i class="fas fa-store"></i> Seller</a></li>
+      {% endif %}
+    </ul>
+  </div>
+</nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-container">
+  {% for cat, msg in messages %}
+  <div class="flash flash-{{ cat }}"><span>{{ msg }}</span><button onclick="this.parentElement.remove()" class="flash-close">&times;</button></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<main class="main-content">{% block content %}{% endblock %}</main>
+
+<!-- Footer -->
+<footer class="footer footer-{{ settings.get('footer_style','dark') }}">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h3 class="footer-logo" id="footerBrandTrigger">{{ settings.get('site_name','Nova Cart') }}</h3>
+        <p>{{ settings.get('site_tagline','Your Daily Shopping Destination') }}</p>
+        <div class="footer-social">
+          {% for key, icon in [('social_facebook','fab fa-facebook'),('social_instagram','fab fa-instagram'),('social_twitter','fab fa-twitter'),('social_youtube','fab fa-youtube')] %}
+          {% if settings.get(key) %}<a href="{{ settings.get(key) }}" target="_blank" rel="noopener"><i class="{{ icon }}"></i></a>{% endif %}
+          {% endfor %}
+          {% if settings.get('whatsapp_number') %}<a href="https://wa.me/{{ settings.get('whatsapp_number') }}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>{% endif %}
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          {% for link in footer_links[:6] %}<li><a href="{{ link.url }}">{{ link.label }}</a></li>{% endfor %}
+          {% for link in external_links %}<li><a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }} <i class="fas fa-external-link-alt" style="font-size:.65rem;opacity:.5"></i></a></li>{% endfor %}
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Categories</h4>
+        <ul>{% for cat in categories[:6] %}<li><a href="/shop/category/{{ cat.slug }}">{{ cat.name }}</a></li>{% endfor %}</ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <ul class="footer-contact">
+          {% if settings.get('site_email') %}<li><i class="fas fa-envelope"></i> {{ settings.get('site_email') }}</li>{% endif %}
+          {% if settings.get('site_phone') %}<li><i class="fas fa-phone"></i> {{ settings.get('site_phone') }}</li>{% endif %}
+          {% if settings.get('site_address') %}<li><i class="fas fa-map-marker-alt"></i> {{ settings.get('site_address') }}</li>{% endif %}
+        </ul>
+      </div>
+    </div>
+
+    {% if settings.get('newsletter_active') == 'true' %}
+    <div class="newsletter-bar">
+      <div class="newsletter-text"><h4><i class="fas fa-envelope-open-text"></i> Stay Updated</h4><p>Get exclusive deals in your inbox</p></div>
+      <div class="newsletter-form">
+        <input type="email" id="newsletterEmail" placeholder="Your email address">
+        <button onclick="subscribeNewsletter()" class="btn btn-primary">Subscribe</button>
+      </div>
+      <p id="newsletterMsg" style="display:none;color:var(--accent);margin-top:.5rem;font-size:.85rem"></p>
+    </div>
+    {% endif %}
+
+    <div class="footer-bottom">
+      <p>&copy; {{ 2024 }} {{ settings.get('site_name','Nova Cart') }}. All rights reserved.</p>
+      <p style="font-size:.8rem;margin-top:.3rem">
+        <a href="#" style="color:#718096" onclick="promptTrack(event)"><i class="fas fa-map-marker-alt"></i> Track Order</a>
+        &nbsp;·&nbsp;
+        <a href="/seller/login" style="color:#718096"><i class="fas fa-store"></i> Seller Portal</a>
+      </p>
+    </div>
+  </div>
+</footer>
+
+{% if settings.get('show_whatsapp_fab','true') == 'true' and settings.get('whatsapp_number') %}
+<a href="https://wa.me/{{ settings.get('whatsapp_number') }}?text=Hi, I need help" class="whatsapp-fab" target="_blank"><i class="fab fa-whatsapp"></i></a>
+{% endif %}
+
+{% if settings.get('popup_active') == 'true' and settings.get('popup_message') %}
+<div class="popup-overlay" id="sitePopup">
+  <div class="popup-box">
+    <button class="popup-close" onclick="closePopup()">&times;</button>
+    <h3>{{ settings.get('popup_title','') }}</h3>
+    <p>{{ settings.get('popup_message') }}</p>
+  </div>
+</div>
+{% endif %}
+
+<script src="/static/js/main.js"></script>
+{% block extra_js %}{% endblock %}
+<script>
+// Secret admin trigger
+(function(){
+  let n=0,t=null;
+  const el=document.getElementById('footerBrandTrigger');
+  if(!el)return;
+  el.style.cursor='pointer';
+  el.addEventListener('click',function(){
+    n++;clearTimeout(t);
+    if(n>=5){n=0;window.location.href='/x-admin-9f3k2/login';}
+    t=setTimeout(function(){n=0;},2000);
+  });
+})();
+
+function closePopup(){document.getElementById('sitePopup').style.display='none';sessionStorage.setItem('pc','1');}
+if(sessionStorage.getItem('pc')){const p=document.getElementById('sitePopup');if(p)p.style.display='none';}
+
+function subscribeNewsletter(){
+  const e=document.getElementById('newsletterEmail')?.value.trim();
+  if(!e)return;
+  fetch('/api/newsletter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})})
+  .then(r=>r.json()).then(d=>{const m=document.getElementById('newsletterMsg');if(m){m.textContent=d.msg;m.style.display='block';}});
+}
+
+function promptTrack(e){
+  e.preventDefault();
+  const id=prompt('Enter your Order ID (e.g. NC-ABCD1234):');
+  if(id)window.location='/cart/track/'+id.trim().toUpperCase();
+}
+
+// Search autocomplete
+const navS=document.getElementById('navSearch');
+const navD=document.getElementById('searchDropdown');
+let st=null;
+if(navS&&navD){
+  navS.addEventListener('input',function(){
+    clearTimeout(st);
+    const q=this.value.trim();
+    if(q.length<2){navD.innerHTML='';navD.style.display='none';return;}
+    st=setTimeout(function(){
+      fetch('/api/search-suggestions?q='+encodeURIComponent(q))
+      .then(r=>r.json()).then(res=>{
+        if(!res.length){navD.style.display='none';return;}
+        navD.innerHTML=res.map(p=>`<a href="/shop/product/${p.slug}" class="search-item"><img src="${p.img}" alt="${p.name}"><div><strong>${p.name}</strong><span>₹${p.price}</span></div></a>`).join('');
+        navD.style.display='block';
+      });
+    },300);
+  });
+  document.addEventListener('click',e=>{if(!e.target.closest('.nav-search-wrap'))navD.style.display='none';});
+}
+
+function trackAd(id){fetch('/api/ad-click/'+id,{method:'POST'}).catch(()=>{});}
+{{ settings.get('custom_js','')|safe }}
+</script>
+{{ settings.get('body_end_scripts','')|safe }}
+</body>
+</html>

@@ -1,0 +1,108 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<!-- Stat Cards -->
+<div class="stats-grid">
+  <div class="stat-card stat-blue">
+    <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
+    <div class="stat-info">
+      <span class="stat-value">{{ stats.total_orders }}</span>
+      <span class="stat-label">Total Orders</span>
+    </div>
+  </div>
+  <div class="stat-card stat-green">
+    <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+    <div class="stat-info">
+      <span class="stat-value">₹{{ stats.total_revenue|int }}</span>
+      <span class="stat-label">Revenue</span>
+    </div>
+  </div>
+  <div class="stat-card stat-purple">
+    <div class="stat-icon"><i class="fas fa-box"></i></div>
+    <div class="stat-info">
+      <span class="stat-value">{{ stats.total_products }}</span>
+      <span class="stat-label">Products</span>
+    </div>
+  </div>
+  <div class="stat-card stat-orange">
+    <div class="stat-icon"><i class="fas fa-users"></i></div>
+    <div class="stat-info">
+      <span class="stat-value">{{ stats.total_users }}</span>
+      <span class="stat-label">Customers</span>
+    </div>
+  </div>
+  <div class="stat-card stat-red">
+    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+    <div class="stat-info">
+      <span class="stat-value">{{ stats.pending_orders }}</span>
+      <span class="stat-label">Pending Orders</span>
+    </div>
+  </div>
+  <div class="stat-card stat-teal">
+    <div class="stat-icon"><i class="fas fa-store-alt"></i></div>
+    <div class="stat-info">
+      <span class="stat-value">{{ stats.total_sellers }}</span>
+      <span class="stat-label">Sellers</span>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+  <a href="/x-admin-9f3k2/products/add" class="quick-btn"><i class="fas fa-plus"></i> Add Product</a>
+  <a href="/x-admin-9f3k2/banners" class="quick-btn"><i class="fas fa-images"></i> Manage Banners</a>
+  <a href="/x-admin-9f3k2/orders" class="quick-btn"><i class="fas fa-shopping-bag"></i> View Orders</a>
+  <a href="/x-admin-9f3k2/theme" class="quick-btn"><i class="fas fa-palette"></i> Edit Theme</a>
+  <a href="/x-admin-9f3k2/settings" class="quick-btn"><i class="fas fa-cog"></i> Settings</a>
+  <a href="/x-admin-9f3k2/backup" class="quick-btn"><i class="fas fa-database"></i> Backup Data</a>
+</div>
+
+<!-- Low Stock Alert -->
+{% if stats.low_stock %}
+<div class="admin-card">
+  <div class="card-header">
+    <h3><i class="fas fa-exclamation-triangle text-warning"></i> Low Stock Alert</h3>
+  </div>
+  <table class="admin-table">
+    <thead><tr><th>Product</th><th>Stock</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for p in stats.low_stock[:5] %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td><span class="badge-warning">{{ p.stock }} left</span></td>
+      <td><a href="/x-admin-9f3k2/products/edit/{{ p.id }}" class="btn btn-sm btn-outline">Edit</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Recent Orders -->
+<div class="admin-card">
+  <div class="card-header">
+    <h3>Recent Orders</h3>
+    <a href="/x-admin-9f3k2/orders" class="btn btn-sm btn-primary">View All</a>
+  </div>
+  {% if recent_orders %}
+  <table class="admin-table">
+    <thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for o in recent_orders %}
+    <tr>
+      <td><strong>#{{ o.order_id }}</strong></td>
+      <td>{{ o.name }}</td>
+      <td>₹{{ o.total|int }}</td>
+      <td><span class="status-badge status-{{ o.status }}">{{ o.status|title }}</span></td>
+      <td>{{ o.created_at[:10] if o.created_at else '' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-msg">No orders yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
